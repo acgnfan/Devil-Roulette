@@ -1,0 +1,31 @@
+# Unity generated
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Visual Studio / Rider / VSCode
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.sln
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Unity packages cache (usually safe to ignore)
+**/[Pp]ackages/**/obj/
