@@ -8,16 +8,16 @@ using UnityEngine.XR.Interaction.Toolkit;
 public class ManuallySelectObject : MonoBehaviour
 {
     [Tooltip("What object are we selecting?")]
-    public XRBaseInteractable interactable = null;
+    public UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable interactable = null;
 
-    private XRBaseControllerInteractor interactor = null;
+    private UnityEngine.XR.Interaction.Toolkit.Interactors.XRBaseInputInteractor interactor = null;
     private XRInteractionManager interactionManager = null;
 
-    private XRBaseControllerInteractor.InputTriggerType originalTriggerType;
+    private UnityEngine.XR.Interaction.Toolkit.Interactors.XRBaseInputInteractor.InputTriggerType originalTriggerType;
 
     private void Awake()
     {
-        interactor = GetComponent<XRBaseControllerInteractor>();
+        interactor = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.XRBaseInputInteractor>();
         interactionManager = interactor.interactionManager;
         originalTriggerType = interactor.selectActionTrigger;
     }
@@ -25,13 +25,13 @@ public class ManuallySelectObject : MonoBehaviour
     public void ManuallySelect()
     {
         interactable.gameObject.SetActive(true);
-        interactor.selectActionTrigger = XRBaseControllerInteractor.InputTriggerType.StateChange;
-        interactionManager.SelectEnter(interactor as IXRSelectInteractor, interactable);
+        interactor.selectActionTrigger = UnityEngine.XR.Interaction.Toolkit.Interactors.XRBaseInputInteractor.InputTriggerType.StateChange;
+        interactionManager.SelectEnter(interactor as UnityEngine.XR.Interaction.Toolkit.Interactors.IXRSelectInteractor, interactable);
     }
 
     public void ManuallyDeselect()
     {
-        interactionManager.SelectExit(interactor as IXRSelectInteractor, interactable);
+        interactionManager.SelectExit(interactor as UnityEngine.XR.Interaction.Toolkit.Interactors.IXRSelectInteractor, interactable);
         interactor.selectActionTrigger = originalTriggerType;
         interactable.gameObject.SetActive(false);
     }

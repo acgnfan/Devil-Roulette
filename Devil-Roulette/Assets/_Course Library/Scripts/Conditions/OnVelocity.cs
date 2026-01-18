@@ -37,7 +37,7 @@ public class OnVelocity : MonoBehaviour
 
     private void CheckVelocity()
     {
-        float speed = rigidBody.velocity.magnitude;
+        float speed = rigidBody.linearVelocity.magnitude;
         hasBegun = HasVelocityBegun(speed);
 
         if (HasVelcoityEnded(speed))

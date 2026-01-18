@@ -9,12 +9,12 @@ public class SetInteractionLayer : MonoBehaviour
     [Tooltip("The layer that's switched to")]
     public InteractionLayerMask targetLayer = 0;
 
-    private XRBaseInteractor interactor = null;
+    private UnityEngine.XR.Interaction.Toolkit.Interactors.XRBaseInteractor interactor = null;
     private InteractionLayerMask originalLayer = 0;
 
     private void Awake()
     {
-        interactor = GetComponent<XRBaseInteractor>();
+        interactor = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.XRBaseInteractor>();
         originalLayer = interactor.interactionLayers;
     }
 

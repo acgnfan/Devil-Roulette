@@ -2,7 +2,7 @@
 using UnityEngine.Events;
 using UnityEngine.XR.Interaction.Toolkit;
 
-public class TeleportAreaWithFade : TeleportationArea
+public class TeleportAreaWithFade : UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationArea
 {
     private FadeCanvas fadeCanvas = null;
 

@@ -30,7 +30,7 @@ public class MoveWithVelocity : MonoBehaviour
         Vector3 targetVelocity = inputVelocity * speed;
         targetVelocity = origin.TransformDirection(targetVelocity);
 
-        Vector3 velocityChange = targetVelocity - rigidBody.velocity;
+        Vector3 velocityChange = targetVelocity - rigidBody.linearVelocity;
         rigidBody.AddForce(velocityChange, ForceMode.VelocityChange);
     }
 

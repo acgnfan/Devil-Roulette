@@ -1,8 +1,8 @@
 ﻿using UnityEditor;
-using UnityEditor.XR.Interaction.Toolkit;
+
 
 [CustomEditor(typeof(XRButton))]
-public class XRButtonEditor : XRBaseInteractableEditor
+public class XRButtonEditor : UnityEditor.XR.Interaction.Toolkit.Interactables.XRBaseInteractableEditor
 {
     private SerializedProperty buttonTransform = null;
     private SerializedProperty pressDistance = null;
