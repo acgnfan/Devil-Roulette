@@ -1,10 +1,10 @@
 # ninja log v5
-31	1610	7906391295264632	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	8550bd457b32e880
-16	1648	7906391295596954	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	2cdf62013b8f779f
-41	1668	7906391295825238	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	9b2cfdc2c5ee76c4
-0	1741	7906391296499204	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	fea5af3266d35779
-63	1744	7906391296524438	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	7a6c1f9b69eb761d
-50	1841	7906391297556093	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	ef1250e22febbd17
-24	2028	7906391299410866	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	ec9d63f722c86b43
-8	2200	7906391301114886	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	13fc4d0fc719790
-2200	2300	7906391302154877	C:/Users/13524/Documents/GitHub/Devil-Roulette/Devil-Roulette/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/1k95g16g/obj/arm64-v8a/libgame.so	3bbd88d2437fe7a9
+32	1842	7906886677360752	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	9b2cfdc2c5ee76c4
+1	1888	7906886677852711	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	2cdf62013b8f779f
+57	1915	7906886678140132	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	8550bd457b32e880
+10	1974	7906886678707828	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	fea5af3266d35779
+97	2010	7906886679072218	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	7a6c1f9b69eb761d
+74	2128	7906886680244660	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	ef1250e22febbd17
+44	2259	7906886681612984	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	ec9d63f722c86b43
+20	2423	7906886683138446	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	13fc4d0fc719790
+2424	2553	7906886684473337	C:/Users/13524/Documents/GitHub/Devil-Roulette/Devil-Roulette/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/1k95g16g/obj/arm64-v8a/libgame.so	3bbd88d2437fe7a9
