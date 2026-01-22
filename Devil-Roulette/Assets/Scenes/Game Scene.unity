@@ -1118,33 +1118,9 @@ MonoBehaviour:
   m_Activated:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 351625972}
-        m_TargetAssemblyTypeName: PlayQuickSound, Assembly-CSharp
-        m_MethodName: Play
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 1749908643}
-        m_TargetAssemblyTypeName: MuzzleFlashLight, Assembly-CSharp
-        m_MethodName: Fire
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 351625983}
-        m_TargetAssemblyTypeName: ShotgunFireController, Assembly-CSharp
-        m_MethodName: OnFireActivated
+      - m_Target: {fileID: 351625984}
+        m_TargetAssemblyTypeName: GunFireGate, Assembly-CSharp
+        m_MethodName: OnActivate
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1443,6 +1419,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShotgunFireController
   floatTime: 1
+--- !u!114 &351625984
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 351625964}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30ea391c8858dec438728c139463b1f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GunFireGate
+  muzzle: {fileID: 1270693102}
+  playerCamera: {fileID: 920921514}
+  dealerInteractable: {fileID: 1984037946}
+  selfFireDotThreshold: 0.9
+  playQuickSound: {fileID: 351625972}
+  shotgunFireController: {fileID: 351625983}
+  muzzleFlashFire: {fileID: 1749908643}
+  drawDebugRay: 0
 --- !u!1 &364578160
 GameObject:
   m_ObjectHideFlags: 0
@@ -3271,7 +3267,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6598815579406187037, guid: 18ddb545287c546e19cc77dc9fbb2189, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -4638,6 +4634,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5855586643228379229, guid: c9841888fa5041d499ada59f73087c6a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 351625982}
+    - targetCorrespondingSourceObject: {fileID: 5855586643228379229, guid: c9841888fa5041d499ada59f73087c6a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 351625984}
   m_SourcePrefab: {fileID: 100100000, guid: c9841888fa5041d499ada59f73087c6a, type: 3}
 --- !u!1001 &1681468469
 PrefabInstance:
