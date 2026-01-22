@@ -1,0 +1,4 @@
+repository "bullet_load_testing/bullet_load_testing@9072337809429@cloud"
+  path "/"
+    br "/main"
+    co "/main"

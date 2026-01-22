@@ -1,0 +1,566 @@
+
+
+// ####################
+// UPDATE:  Check if chamber empty before choice
+// #################### 
+
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections;
+
+public class GameFlowController : MonoBehaviour
+{
+    [Header("CORE REFERENCES")]
+    public GameState gameState;
+    public BulletSystem bulletSystem;
+    public ChamberManager chamberManager;
+    
+    [Header("UI REFERENCES")]
+    public Button shootSelfButton;
+    public Button shootOpponentButton;
+    public Text turnText;
+    public Text instructionText;
+    public Text roundText;
+    public Text playerHPText;
+    public Text dealerHPText;
+    public Text bulletCountText;
+    public GameObject playerTurnPanel;
+    public GameObject dealerTurnPanel;
+    
+    [Header("GAME SETTINGS")]
+    public bool autoStart = true;
+    public float dealerThinkTime = 1.5f;
+    public float roundTransitionTime = 2f;
+    
+    [Header("DEBUG")]
+    public bool debugMode = false;
+    private bool isProcessingTurn = false; // Prevent multiple clicks
+    
+    void Start()
+    {
+        InitializeGame();
+    }
+    
+    void InitializeGame()
+    {
+        // Setup button listeners
+        if (shootSelfButton != null)
+        {
+            shootSelfButton.onClick.RemoveAllListeners();
+            shootSelfButton.onClick.AddListener(() => OnShootChoice(true));
+        }
+        
+        if (shootOpponentButton != null)
+        {
+            shootOpponentButton.onClick.RemoveAllListeners();
+            shootOpponentButton.onClick.AddListener(() => OnShootChoice(false));
+        }
+        
+        // Start the game
+        if (autoStart)
+        {
+            StartNewRound();
+        }
+    }
+    
+    // ========== ROUND MANAGEMENT ==========
+    
+    public void StartNewRound()
+    {
+        if (gameState.gameOver)
+        {
+            Debug.Log("Game is over! Press R to restart.");
+            UpdateAllUI();
+            return;
+        }
+        
+        Debug.Log($"\n{'='.Repeat(40)}");
+        Debug.Log($"=== STARTING ROUND {gameState.currentRound} of {gameState.totalRounds} ===");
+        Debug.Log($"{'='.Repeat(40)}");
+        
+        // Reset game state for new round
+        gameState.ResetHPForRound();
+        gameState.playerTurn = true; // Player starts
+        gameState.getsExtraTurn = false;
+        isProcessingTurn = false;
+        
+        // Initial reload
+        chamberManager.ReloadChamber();
+        
+        // Update UI
+        UpdateAllUI();
+        
+        Debug.Log($"Round {gameState.currentRound}: {gameState.GetCurrentRoundHP()} HP each");
+        Debug.Log("Player's turn first!");
+    }
+    
+    // ========== PLAYER ACTIONS ==========
+    
+    // Called when player chooses who to shoot
+    public void OnShootChoice(bool shootSelf)
+    {
+        if (isProcessingTurn) return; // Prevent double clicks
+        if (!gameState.gameActive)
+        {
+            Debug.Log("Round is not active!");
+            return;
+        }
+        
+        if (!gameState.playerTurn)
+        {
+            Debug.Log("Not player's turn!");
+            return;
+        }
+        
+        isProcessingTurn = true;
+        string target = shootSelf ? "themselves" : "the dealer";
+        Debug.Log($"\n👤 Player chooses to shoot {target}");
+        
+        ExecuteShot(shootSelf);
+    }
+    
+    // ========== SHOT EXECUTION ==========
+    
+    void ExecuteShot(bool shootSelf)
+    {
+        // FIXED: Already checked if empty before showing buttons
+        // Just proceed with shooting
+        
+        // Fire the chamber
+        bool isLive = chamberManager.FireCurrentChamber();
+        
+        // Apply damage based on target
+        if (isLive)
+        {
+            if (shootSelf)
+            {
+                // Shooter hit themselves
+                Debug.Log("💥 BANG! Shooter hit themselves!");
+                gameState.ApplyDamage(gameState.playerTurn);
+            }
+            else
+            {
+                // Shooter hit opponent
+                string hitWho = gameState.playerTurn ? "Dealer" : "Player";
+                Debug.Log($"💥 BANG! {hitWho} was hit!");
+                gameState.ApplyDamage(!gameState.playerTurn);
+            }
+        }
+        else
+        {
+            Debug.Log("🔘 Click... safe!");
+        }
+        
+        // Update UI immediately
+        UpdateHPUI();
+        UpdateBulletUI();
+        
+        // Record the shot target
+        gameState.lastShotTarget = shootSelf ? 
+            GameState.ShootTarget.Self : GameState.ShootTarget.Opponent;
+        
+        // End turn based on rules
+        gameState.EndTurn(shootSelf, isLive);
+        
+        // Check if round ended
+        if (!gameState.gameActive)
+        {
+            isProcessingTurn = false;
+            HandleRoundEnd();
+            return;
+        }
+        
+        // Handle turn continuation
+        HandleTurnContinuation();
+    }
+    
+    // ========== TURN MANAGEMENT ==========
+    
+    void HandleTurnContinuation()
+    {
+        // If it's still the same player's turn (blank self-shot)
+        if (gameState.getsExtraTurn)
+        {
+            Debug.Log("🎯 Same player gets another turn!");
+            gameState.getsExtraTurn = false; // Reset for next decision
+            
+            if (gameState.playerTurn)
+            {
+                // Player gets another turn - CHECK IF NEED TO RELOAD FIRST
+                StartCoroutine(PlayerTurnSequence());
+            }
+            else
+            {
+                // Dealer gets another turn
+                StartCoroutine(DealerTurnSequence());
+            }
+        }
+        else
+        {
+            // Switch to other player
+            if (!gameState.playerTurn)
+            {
+                // Dealer's turn
+                StartCoroutine(DealerTurnSequence());
+            }
+            else
+            {
+                // Player's turn - CHECK IF NEED TO RELOAD FIRST
+                StartCoroutine(PlayerTurnSequence());
+            }
+        }
+    }
+    
+    // NEW: Player turn sequence with reload check
+    IEnumerator PlayerTurnSequence()
+    {
+        isProcessingTurn = false;
+        
+        // Check if need to reload BEFORE showing buttons
+        if (chamberManager.NeedToReload())
+        {
+            Debug.Log("🔁 Reloading before player's turn...");
+            chamberManager.ReloadChamber();
+            UpdateBulletUI();
+            yield return new WaitForSeconds(0.5f); // Brief pause
+        }
+        
+        UpdateAllUI();
+        Debug.Log("Player's turn - waiting for choice...");
+    }
+    
+    // NEW: Dealer turn sequence with reload check
+    IEnumerator DealerTurnSequence()
+    {
+        isProcessingTurn = false;
+        
+        // Check if need to reload BEFORE dealer acts
+        if (chamberManager.NeedToReload())
+        {
+            Debug.Log("🔁 Reloading before dealer's turn...");
+            chamberManager.ReloadChamber();
+            UpdateBulletUI();
+            yield return new WaitForSeconds(0.5f);
+        }
+        
+        UpdateAllUI();
+        yield return new WaitForSeconds(0.5f);
+        
+        // Now dealer takes action
+        StartCoroutine(DealerTakeTurn());
+    }
+    
+    void HandleRoundEnd()
+    {
+        Debug.Log("\n🏁 ROUND ENDED!");
+        
+        if (gameState.playerHP <= 0)
+            Debug.Log("💀 Player lost this round!");
+        else if (gameState.dealerHP <= 0)
+            Debug.Log("🎉 Player won this round!");
+        
+        UpdateAllUI();
+        
+        // Check if should start next round
+        if (gameState.ShouldStartNewRound())
+        {
+            StartCoroutine(AutoNextRound());
+        }
+        else if (gameState.gameOver)
+        {
+            Debug.Log("\n🎮 GAME OVER!");
+            UpdateAllUI();
+        }
+    }
+    
+    // ========== DEALER AI ==========
+    
+    IEnumerator DealerTakeTurn()
+    {
+        Debug.Log("\n🤖 DEALER'S TURN...");
+        
+        // Show dealer thinking
+        if (dealerTurnPanel != null)
+            dealerTurnPanel.SetActive(true);
+        if (playerTurnPanel != null)
+            playerTurnPanel.SetActive(false);
+        
+        // Wait for "thinking" time
+        yield return new WaitForSeconds(dealerThinkTime);
+        
+        // For now, dealer always shoots themselves
+        // Later we'll add AI decision making
+        Debug.Log("Dealer chooses to shoot themselves...");
+        
+        isProcessingTurn = true;
+        ExecuteShot(true); // Dealer shoots self
+    }
+    
+    // ========== UI MANAGEMENT ==========
+    
+    void UpdateAllUI()
+    {
+        UpdateTurnUI();
+        UpdateHPUI();
+        UpdateRoundUI();
+        UpdateBulletUI();
+        UpdateInstructionUI();
+    }
+    
+    void UpdateTurnUI()
+    {
+        // Update turn text
+        if (turnText != null)
+        {
+            turnText.text = gameState.playerTurn ? 
+                "👤 PLAYER'S TURN" : "🤖 DEALER'S TURN";
+            turnText.color = gameState.playerTurn ? Color.green : Color.yellow;
+        }
+        
+        // Show/hide panels - ONLY if not processing and not empty
+        if (playerTurnPanel != null)
+        {
+            bool shouldShow = gameState.gameActive && 
+                            gameState.playerTurn && 
+                            !isProcessingTurn &&
+                            !chamberManager.NeedToReload();
+            playerTurnPanel.SetActive(shouldShow);
+        }
+        
+        if (dealerTurnPanel != null)
+        {
+            bool shouldShow = gameState.gameActive && 
+                            !gameState.playerTurn && 
+                            !isProcessingTurn;
+            dealerTurnPanel.SetActive(shouldShow);
+        }
+        
+        // Update button interactivity based on game state
+        if (shootSelfButton != null)
+            shootSelfButton.interactable = gameState.gameActive && gameState.playerTurn && !isProcessingTurn;
+        
+        if (shootOpponentButton != null)
+            shootOpponentButton.interactable = gameState.gameActive && gameState.playerTurn && !isProcessingTurn;
+    }
+    
+    void UpdateHPUI()
+    {
+        if (playerHPText != null)
+        {
+            int maxHP = gameState.GetCurrentRoundHP();
+            playerHPText.text = $"Player: {gameState.playerHP}/{maxHP}";
+            playerHPText.color = gameState.playerHP <= 1 ? Color.red : 
+                                gameState.playerHP <= maxHP/2 ? Color.yellow : Color.green;
+        }
+        
+        if (dealerHPText != null)
+        {
+            int maxHP = gameState.GetCurrentRoundHP();
+            dealerHPText.text = $"Dealer: {gameState.dealerHP}/{maxHP}";
+            dealerHPText.color = gameState.dealerHP <= 1 ? Color.red : 
+                                gameState.dealerHP <= maxHP/2 ? Color.yellow : Color.yellow;
+        }
+    }
+    
+    void UpdateRoundUI()
+    {
+        if (roundText != null)
+        {
+            roundText.text = $"Round {gameState.currentRound}/{gameState.totalRounds}";
+            roundText.color = gameState.currentRound == 3 ? Color.red : 
+                             gameState.currentRound == 2 ? Color.yellow : Color.white;
+        }
+    }
+    
+    void UpdateBulletUI()
+    {
+        if (bulletCountText != null)
+        {
+            int remaining = gameState.GetRemainingBullets();
+            int total = gameState.totalBulletsLoaded;
+            
+            bulletCountText.text = $"Bullets: {remaining}/{total}";
+            
+            if (gameState.NeedToReload())
+            {
+                bulletCountText.color = Color.red;
+                bulletCountText.text += " (EMPTY)";
+            }
+            else if (remaining <= 2)
+            {
+                bulletCountText.color = Color.yellow;
+                bulletCountText.text += " (LOW)";
+            }
+            else
+            {
+                bulletCountText.color = Color.green;
+                bulletCountText.text += " (READY)";
+            }
+        }
+    }
+    
+    void UpdateInstructionUI()
+    {
+        if (instructionText != null)
+        {
+            if (!gameState.gameActive)
+            {
+                if (gameState.gameOver)
+                {
+                    instructionText.text = gameState.playerWins >= 2 ? 
+                        "🏆 YOU WIN! Press R to restart" : 
+                        "😞 DEALER WINS! Press R to restart";
+                }
+                else
+                {
+                    instructionText.text = "Round over! Next round starting...";
+                }
+            }
+            else if (gameState.playerTurn)
+            {
+                if (chamberManager.NeedToReload())
+                {
+                    instructionText.text = "Reloading chamber...";
+                }
+                else if (isProcessingTurn)
+                {
+                    instructionText.text = "Processing...";
+                }
+                else
+                {
+                    instructionText.text = "Choose who to shoot:";
+                }
+            }
+            else
+            {
+                if (isProcessingTurn)
+                {
+                    instructionText.text = "Dealer is acting...";
+                }
+                else
+                {
+                    instructionText.text = "Dealer is thinking...";
+                }
+            }
+        }
+    }
+    
+    // ========== COROUTINES ==========
+    
+    IEnumerator AutoNextRound()
+    {
+        Debug.Log($"Waiting {roundTransitionTime} seconds before next round...");
+        yield return new WaitForSeconds(roundTransitionTime);
+        StartNewRound();
+    }
+    
+    // ========== INPUT HANDLING ==========
+    
+    void Update()
+    {
+        HandleDebugInput();
+        HandleGameInput();
+    }
+    
+    void HandleGameInput()
+    {
+        // Don't process if we're in the middle of something
+        if (isProcessingTurn) return;
+        
+        // Player input (keyboard alternative to buttons)
+        if (gameState.gameActive && gameState.playerTurn && !chamberManager.NeedToReload())
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+            {
+                Debug.Log("Player (keyboard) shoots self");
+                OnShootChoice(true);
+            }
+            
+            if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+            {
+                Debug.Log("Player (keyboard) shoots dealer");
+                OnShootChoice(false);
+            }
+        }
+        
+        // Next round
+        if (Input.GetKeyDown(KeyCode.N) && gameState.ShouldStartNewRound())
+        {
+            Debug.Log("Manual next round");
+            StartNewRound();
+        }
+        
+        // Restart game
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            RestartGame();
+        }
+        
+        // Force reload (debug)
+        if (Input.GetKeyDown(KeyCode.L) && debugMode)
+        {
+            Debug.Log("Force reload");
+            chamberManager.ReloadChamber();
+            UpdateBulletUI();
+        }
+    }
+    
+    void HandleDebugInput()
+    {
+        if (!debugMode) return;
+        
+        if (Input.GetKeyDown(KeyCode.F1))
+        {
+            Debug.Log("=== DEBUG INFO ===");
+            Debug.Log($"Game Active: {gameState.gameActive}");
+            Debug.Log($"Player Turn: {gameState.playerTurn}");
+            Debug.Log($"Gets Extra Turn: {gameState.getsExtraTurn}");
+            Debug.Log($"Need Reload: {chamberManager.NeedToReload()}");
+            Debug.Log($"Is Processing: {isProcessingTurn}");
+            gameState.DebugBulletStatus();
+        }
+        
+        if (Input.GetKeyDown(KeyCode.F2))
+        {
+            gameState.DebugGameStatus();
+        }
+    }
+    
+    // ========== GAME CONTROL ==========
+    
+    void RestartGame()
+    {
+        Debug.Log("\n" + "🔄".Repeat(20));
+        Debug.Log("🔄 RESTARTING ENTIRE GAME");
+        Debug.Log("🔄".Repeat(20));
+        
+        gameState.currentRound = 1;
+        gameState.playerWins = 0;
+        gameState.totalRoundsPlayed = 0;
+        gameState.playerWonLastRound = false;
+        gameState.gameOver = false;
+        gameState.gameActive = false;
+        isProcessingTurn = false;
+        
+        StartNewRound();
+    }
+}
+
+// Extension method for string repetition
+public static class StringExtensions
+{
+    public static string Repeat(this char chatToRepeat, int repeat)
+    {
+        return new string(chatToRepeat, repeat);
+    }
+    
+    public static string Repeat(this string stringToRepeat, int repeat)
+    {
+        var builder = new System.Text.StringBuilder();
+        for (int i = 0; i < repeat; i++)
+        {
+            builder.Append(stringToRepeat);
+        }
+        return builder.ToString();
+    }
+}
