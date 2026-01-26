@@ -1,9 +1,8 @@
 
 
-// ####################
-// UPDATE:  Check if chamber empty before choice
-// #################### 
-
+// ###################### 
+// UPDATE: add tools
+// ######################
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
@@ -14,6 +13,7 @@ public class GameFlowController : MonoBehaviour
     public GameState gameState;
     public BulletSystem bulletSystem;
     public ChamberManager chamberManager;
+    public ToolSystem toolSystem;
     
     [Header("UI REFERENCES")]
     public Button shootSelfButton;
@@ -24,8 +24,15 @@ public class GameFlowController : MonoBehaviour
     public Text playerHPText;
     public Text dealerHPText;
     public Text bulletCountText;
+    public Text playerToolsText;
+    public Text dealerToolsText;
     public GameObject playerTurnPanel;
     public GameObject dealerTurnPanel;
+    
+    [Header("TOOL UI")]
+    public GameObject toolSelectionPanel;
+    public Button[] toolButtons; // 6 buttons for tools
+    public Text toolInfoText;
     
     [Header("GAME SETTINGS")]
     public bool autoStart = true;
@@ -34,7 +41,9 @@ public class GameFlowController : MonoBehaviour
     
     [Header("DEBUG")]
     public bool debugMode = false;
-    private bool isProcessingTurn = false; // Prevent multiple clicks
+    private bool isProcessingTurn = false;
+    private bool isSelectingTool = false;
+    private bool hasUsedToolThisTurn = false;
     
     void Start()
     {
@@ -54,6 +63,17 @@ public class GameFlowController : MonoBehaviour
         {
             shootOpponentButton.onClick.RemoveAllListeners();
             shootOpponentButton.onClick.AddListener(() => OnShootChoice(false));
+        }
+        
+        // Setup tool button listeners
+        if (toolButtons != null && toolButtons.Length >= 6)
+        {
+            for (int i = 0; i < toolButtons.Length; i++)
+            {
+                int index = i;
+                toolButtons[i].onClick.RemoveAllListeners();
+                toolButtons[i].onClick.AddListener(() => OnToolSelected(index));
+            }
         }
         
         // Start the game
@@ -80,9 +100,14 @@ public class GameFlowController : MonoBehaviour
         
         // Reset game state for new round
         gameState.ResetHPForRound();
-        gameState.playerTurn = true; // Player starts
-        gameState.getsExtraTurn = false;
+        gameState.playerTurn = true;
+        gameState.getsExtraTurn = false; 
         isProcessingTurn = false;
+        isSelectingTool = false;
+        hasUsedToolThisTurn = false;
+        
+        // DISTRIBUTE TOOLS for this round
+        gameState.DistributeTools();
         
         // Initial reload
         chamberManager.ReloadChamber();
@@ -99,7 +124,7 @@ public class GameFlowController : MonoBehaviour
     // Called when player chooses who to shoot
     public void OnShootChoice(bool shootSelf)
     {
-        if (isProcessingTurn) return; // Prevent double clicks
+        if (isProcessingTurn) return;
         if (!gameState.gameActive)
         {
             Debug.Log("Round is not active!");
@@ -123,13 +148,11 @@ public class GameFlowController : MonoBehaviour
     
     void ExecuteShot(bool shootSelf)
     {
-        // FIXED: Already checked if empty before showing buttons
-        // Just proceed with shooting
-        
+        // Check if need to reload BEFORE showing choice (already handled)
         // Fire the chamber
         bool isLive = chamberManager.FireCurrentChamber();
         
-        // Apply damage based on target
+        // Apply damage based on target (with hand saw multiplier)
         if (isLive)
         {
             if (shootSelf)
@@ -182,11 +205,11 @@ public class GameFlowController : MonoBehaviour
         if (gameState.getsExtraTurn)
         {
             Debug.Log("🎯 Same player gets another turn!");
-            gameState.getsExtraTurn = false; // Reset for next decision
+            gameState.getsExtraTurn = false;
             
             if (gameState.playerTurn)
             {
-                // Player gets another turn - CHECK IF NEED TO RELOAD FIRST
+                // Player gets another turn
                 StartCoroutine(PlayerTurnSequence());
             }
             else
@@ -205,16 +228,16 @@ public class GameFlowController : MonoBehaviour
             }
             else
             {
-                // Player's turn - CHECK IF NEED TO RELOAD FIRST
+                // Player's turn
                 StartCoroutine(PlayerTurnSequence());
             }
         }
     }
     
-    // NEW: Player turn sequence with reload check
     IEnumerator PlayerTurnSequence()
     {
         isProcessingTurn = false;
+        hasUsedToolThisTurn = false;
         
         // Check if need to reload BEFORE showing buttons
         if (chamberManager.NeedToReload())
@@ -222,14 +245,20 @@ public class GameFlowController : MonoBehaviour
             Debug.Log("🔁 Reloading before player's turn...");
             chamberManager.ReloadChamber();
             UpdateBulletUI();
-            yield return new WaitForSeconds(0.5f); // Brief pause
+            yield return new WaitForSeconds(0.5f);
         }
         
         UpdateAllUI();
+        
+        // Check if player has tools to use
+        if (gameState.playerTools.Count > 0)
+        {
+            Debug.Log("Player has tools available. Press T to use or Space to shoot.");
+        }
+        
         Debug.Log("Player's turn - waiting for choice...");
     }
     
-    // NEW: Dealer turn sequence with reload check
     IEnumerator DealerTurnSequence()
     {
         isProcessingTurn = false;
@@ -246,8 +275,41 @@ public class GameFlowController : MonoBehaviour
         UpdateAllUI();
         yield return new WaitForSeconds(0.5f);
         
-        // Now dealer takes action
-        StartCoroutine(DealerTakeTurn());
+        // Dealer AI decision: use tools first if available
+        if (gameState.dealerTools.Count > 0 && Random.value < 0.7f) // 70% chance to use tool
+        {
+            yield return StartCoroutine(DealerUseTool());
+        }
+        else
+        {
+            // Then shoot
+            StartCoroutine(DealerTakeTurn());
+        }
+    }
+    
+    IEnumerator DealerUseTool()
+    {
+        Debug.Log("🤖 Dealer considering using a tool...");
+        yield return new WaitForSeconds(dealerThinkTime);
+        
+        // Simple AI: pick random tool
+        if (gameState.dealerTools.Count > 0)
+        {
+            int randomIndex = Random.Range(0, gameState.dealerTools.Count);
+            var toolToUse = gameState.dealerTools[randomIndex].type;
+            
+            Debug.Log($"Dealer decides to use {toolToUse}");
+            // UseTool(false, toolToUse);
+            UseSpecificTool(false, toolToUse);
+            
+            // Wait then take turn
+            yield return new WaitForSeconds(1f);
+            StartCoroutine(DealerTakeTurn());
+        }
+        else
+        {
+            StartCoroutine(DealerTakeTurn());
+        }
     }
     
     void HandleRoundEnd()
@@ -296,6 +358,401 @@ public class GameFlowController : MonoBehaviour
         ExecuteShot(true); // Dealer shoots self
     }
     
+    // ========== TOOL SYSTEM ==========
+    
+    void ShowToolSelection()
+    {
+        if (!gameState.gameActive || !gameState.playerTurn || isSelectingTool)
+            return;
+        
+        // Check if player has any tools
+        if (gameState.playerTools.Count == 0)
+        {
+            Debug.Log("No tools available!");
+            if (toolInfoText != null)
+                toolInfoText.text = "No tools available!";
+            return;
+        }
+        
+        isSelectingTool = true;
+        hasUsedToolThisTurn = false;
+        
+        // Show tool panel
+        if (toolSelectionPanel != null)
+            toolSelectionPanel.SetActive(true);
+        
+        // Update which tools are available
+        UpdateToolButtons();
+        
+        Debug.Log("Select a tool to use (or press Space to shoot)");
+        if (toolInfoText != null)
+            toolInfoText.text = "Select a tool (or Space to shoot)";
+    }
+    
+    void UpdateToolButtons()
+    {
+        if (toolButtons == null) return;
+        
+        // Map tool types to buttons
+        ToolSystem.ToolType[] toolOrder = {
+            ToolSystem.ToolType.BurnerPhone,
+            ToolSystem.ToolType.MagnifyingGlass,
+            ToolSystem.ToolType.Beer,
+            ToolSystem.ToolType.Pills,
+            ToolSystem.ToolType.HandSaw,
+            ToolSystem.ToolType.Adrenaline
+        };
+        
+        for (int i = 0; i < toolButtons.Length; i++)
+        {
+            if (i < toolOrder.Length)
+            {
+                bool hasTool = gameState.HasTool(true, toolOrder[i]);
+                toolButtons[i].interactable = hasTool && !hasUsedToolThisTurn;
+                
+                // Update button text
+                Text buttonText = toolButtons[i].GetComponentInChildren<Text>();
+                if (buttonText != null)
+                {
+                    buttonText.text = hasTool ? GetToolShortName(toolOrder[i]) : "---";
+                }
+            }
+        }
+    }
+    
+    string GetToolShortName(ToolSystem.ToolType toolType)
+    {
+        return toolType switch
+        {
+            ToolSystem.ToolType.BurnerPhone => "Phone",
+            ToolSystem.ToolType.MagnifyingGlass => "Glass",
+            ToolSystem.ToolType.Beer => "Beer",
+            ToolSystem.ToolType.Pills => "Pills",
+            ToolSystem.ToolType.HandSaw => "Saw",
+            ToolSystem.ToolType.Adrenaline => "Adren",
+            _ => "???"
+        };
+    }
+    
+    void OnToolSelected(int toolIndex)
+    {
+        if (!isSelectingTool || hasUsedToolThisTurn) return;
+        
+        ToolSystem.ToolType[] toolOrder = {
+            ToolSystem.ToolType.BurnerPhone,
+            ToolSystem.ToolType.MagnifyingGlass,
+            ToolSystem.ToolType.Beer,
+            ToolSystem.ToolType.Pills,
+            ToolSystem.ToolType.HandSaw,
+            ToolSystem.ToolType.Adrenaline
+        };
+        
+        if (toolIndex < toolOrder.Length)
+        {
+            ToolSystem.ToolType selectedTool = toolOrder[toolIndex];
+            
+            if (gameState.HasTool(true, selectedTool))
+            {
+                // UseTool(true, selectedTool);
+                UseSpecificTool(true, selectedTool);
+                hasUsedToolThisTurn = true;
+                
+                // Ask if player wants to use another tool
+                if (gameState.playerTools.Count > 0)
+                {
+                    StartCoroutine(AskForAnotherTool());
+                }
+                else
+                {
+                    HideToolSelection();
+                }
+            }
+        }
+    }
+    
+    IEnumerator AskForAnotherTool()
+    {
+        if (toolInfoText != null)
+            toolInfoText.text = "Use another tool? (Click tool or Space to shoot)";
+        
+        yield return new WaitForSeconds(0.5f);
+        UpdateToolButtons(); // Re-enable buttons for another tool
+        hasUsedToolThisTurn = false;
+    }
+    
+    void HideToolSelection()
+    {
+        isSelectingTool = false;
+        if (toolSelectionPanel != null)
+            toolSelectionPanel.SetActive(false);
+    }
+    
+    // ========== TOOL ACTIONS ==========
+    
+    // void UseTool(bool isPlayer, ToolSystem.ToolType toolType)
+    // {
+    //     if (!gameState.HasTool(isPlayer, toolType))
+    //     {
+    //         Debug.Log($"{(isPlayer ? "Player" : "Dealer")} doesn't have {toolType}!");
+    //         return;
+    //     }
+        
+    //     switch (toolType)
+    //     {
+    //         case ToolSystem.ToolType.BurnerPhone:
+    //             UseBurnerPhone(isPlayer);
+    //             break;
+                
+    //         case ToolSystem.ToolType.MagnifyingGlass:
+    //             UseMagnifyingGlass(isPlayer);
+    //             break;
+                
+    //         case ToolSystem.ToolType.Beer:
+    //             UseBeer(isPlayer);
+    //             break;
+                
+    //         case ToolSystem.ToolType.Pills:
+    //             UsePills(isPlayer);
+    //             break;
+                
+    //         case ToolSystem.ToolType.HandSaw:
+    //             // Just mark it as used - effect applies on next shot
+    //             gameState.UseTool(isPlayer, toolType);
+    //             break;
+                
+    //         case ToolSystem.ToolType.Adrenaline:
+    //             UseAdrenaline(isPlayer);
+    //             break;
+    //     }
+        
+    //     UpdateToolUI();
+    // }
+    
+    // 
+    // 
+    // 
+    // ADD THIS NEW HELPER FUNCTION:
+    void UseSpecificTool(bool isPlayer, ToolSystem.ToolType toolType)
+    {
+        if (!gameState.HasTool(isPlayer, toolType)) return;
+        
+        switch (toolType)
+        {
+            case ToolSystem.ToolType.BurnerPhone:
+                UseBurnerPhone(isPlayer);
+                break;
+            case ToolSystem.ToolType.MagnifyingGlass:
+                UseMagnifyingGlass(isPlayer);
+                break;
+            case ToolSystem.ToolType.Beer:
+                UseBeer(isPlayer);
+                break;
+            case ToolSystem.ToolType.Pills:
+                UsePills(isPlayer);
+                break;
+            case ToolSystem.ToolType.HandSaw:
+                UseHandSaw(isPlayer);
+                break;
+            case ToolSystem.ToolType.Adrenaline:
+                UseAdrenaline(isPlayer);
+                break;
+        }
+        
+        UpdateToolUI();
+    }
+
+    public void UseBurnerPhone(bool isPlayer)
+    {
+        Debug.Log($"{(isPlayer ? "Player" : "Dealer")} uses Burner Phone");
+        
+        // string result = chamberManager.RevealRandomShell();
+
+        var (success, chamberIndex, shellType) = chamberManager.RevealRandomShell();
+        if (success)
+        {
+            string result = $"Revealed: Chamber {chamberIndex} = " + (shellType == GameState.ShellType.Live ? "LIVE" : "BLANK");
+            // Use chamberIndex and shellType here
+            if (toolInfoText != null && isPlayer)
+                toolInfoText.text = result;
+            gameState.RemoveTool(isPlayer, ToolSystem.ToolType.BurnerPhone);
+            UpdateToolUI();
+        
+        }
+
+        // if (toolInfoText != null && isPlayer)
+        //     toolInfoText.text = result;
+        
+        // gameState.UseTool(isPlayer, ToolSystem.ToolType.BurnerPhone);
+    }
+    
+    public void UseMagnifyingGlass(bool isPlayer)
+    {
+        Debug.Log($"{(isPlayer ? "Player" : "Dealer")} uses Magnifying Glass");
+
+        var (success, shellType) = chamberManager.InspectCurrentChamber();
+        if (success)
+        {
+            string shellName = shellType == GameState.ShellType.Live ? "LIVE" : "BLANK";
+            string result = $"Current chamber: {shellName}";
+
+            if (toolInfoText != null && isPlayer)
+                toolInfoText.text = $"Current chamber: {result}";
+                
+            gameState.RemoveTool(isPlayer, ToolSystem.ToolType.MagnifyingGlass);
+            UpdateToolUI();
+        }
+        
+        // string result = chamberManager.InspectCurrentChamber();
+        
+        // if (toolInfoText != null && isPlayer)
+        //     toolInfoText.text = $"Current chamber: {result}";
+        
+        // gameState.UseTool(isPlayer, ToolSystem.ToolType.MagnifyingGlass);
+    }
+    
+    public void UseBeer(bool isPlayer)
+    {
+        Debug.Log($"{(isPlayer ? "Player" : "Dealer")} uses Beer");
+        
+        chamberManager.SkipCurrentChamber();
+        gameState.RemoveTool(isPlayer, ToolSystem.ToolType.Beer);
+        UpdateToolUI();
+        
+        // If player used beer, their turn continues
+        if (isPlayer)
+        {
+            StartCoroutine(PlayerTurnSequence());
+        }
+    }
+    
+    public void UsePills(bool isPlayer)
+    {
+        Debug.Log($"{(isPlayer ? "Player" : "Dealer")} uses Pills");
+        
+        bool heal = Random.value < 0.4f;
+        
+        if (isPlayer)
+        {
+            if (heal)
+            {
+                gameState.playerHP = Mathf.Min(gameState.playerHP + 1, gameState.GetCurrentRoundHP());
+                Debug.Log("💊 Pills healed 1 HP!");
+                if (toolInfoText != null)
+                    toolInfoText.text = "Pills healed 1 HP!";
+            }
+            else
+            {
+                gameState.playerHP = Mathf.Max(0, gameState.playerHP - 1);
+                Debug.Log("💊 Pills caused 1 damage!");
+                if (toolInfoText != null)
+                    toolInfoText.text = "Pills caused 1 damage!";
+                gameState.CheckRoundEnd();
+            }
+        }
+        else
+        {
+            if (heal)
+            {
+                gameState.dealerHP = Mathf.Min(gameState.dealerHP + 1, gameState.GetCurrentRoundHP());
+                Debug.Log("💊 Dealer's pills healed 1 HP!");
+            }
+            else
+            {
+                gameState.dealerHP = Mathf.Max(0, gameState.dealerHP - 1);
+                Debug.Log("💊 Dealer's pills caused 1 damage!");
+                gameState.CheckRoundEnd();
+            }
+        }
+        
+        gameState.RemoveTool(isPlayer, ToolSystem.ToolType.Pills);
+        UpdateHPUI();
+        UpdateToolUI();
+    }
+    
+    public void UseAdrenaline(bool isPlayer)
+    {
+        Debug.Log($"{(isPlayer ? "Player" : "Dealer")} uses Adrenaline");
+        
+        if (isPlayer && gameState.dealerTools.Count > 0)
+        {
+            int randomIndex = Random.Range(0, gameState.dealerTools.Count);
+            var stolenTool = gameState.dealerTools[randomIndex];
+            
+            gameState.playerTools.Add(stolenTool);
+            gameState.dealerTools.RemoveAt(randomIndex);
+            
+            Debug.Log($"⚡ Stole {stolenTool.name} from dealer!");
+            
+            if (toolInfoText != null)
+                toolInfoText.text = $"Stole {stolenTool.name}!";
+            
+            // Use it immediately
+            gameState.RemoveTool(isPlayer, stolenTool.type);
+            UpdateToolUI();
+        }
+        else if (!isPlayer && gameState.playerTools.Count > 0)
+        {
+            int randomIndex = Random.Range(0, gameState.playerTools.Count);
+            var stolenTool = gameState.playerTools[randomIndex];
+            
+            gameState.dealerTools.Add(stolenTool);
+            gameState.playerTools.RemoveAt(randomIndex);
+            
+            Debug.Log($"⚡ Dealer stole {stolenTool.name} from player!");
+            
+            // Dealer uses it immediately
+            gameState.RemoveTool(false, stolenTool.type);
+            UpdateToolUI();
+        }
+        else
+        {
+            Debug.Log("⚡ No tools to steal!");
+            if (toolInfoText != null)
+                toolInfoText.text = "No tools to steal!";
+        }
+        
+        gameState.RemoveTool(isPlayer, ToolSystem.ToolType.Adrenaline);
+        UpdateToolUI();
+    }
+    
+    // ################### 
+    // UPDATE: add missing function 
+    // ################### 
+    public void UseHandSaw(bool isPlayer)
+    {
+        Debug.Log($"{(isPlayer ? "Player" : "Dealer")} uses Hand Saw");
+        
+        // Mark hand saw as active - damage multiplier will be applied on next shot
+        gameState.RemoveTool(isPlayer, ToolSystem.ToolType.HandSaw);
+        
+        string message = "⚔️ Hand Saw ready! Next shot deals DOUBLE DAMAGE!";
+        Debug.Log(message);
+        
+        if (toolInfoText != null && isPlayer)
+            toolInfoText.text = message;
+        
+        // Update UI to show hand saw is active
+        if (isPlayer)
+        {
+            // You might want to add a visual indicator
+            if (instructionText != null)
+                instructionText.text = "HAND SAW ACTIVE! Next shot = 2x damage";
+        }
+    }
+
+    // 
+    // 
+    // 
+    // In GameFlowController.cs - Add this method anywhere in the class
+    public void OnToolPlacementComplete()
+    {
+        Debug.Log("✓ Tool placement finished!");
+        
+        // Just make sure game continues normally
+        UpdateAllUI();
+    }
+
+
     // ========== UI MANAGEMENT ==========
     
     void UpdateAllUI()
@@ -304,12 +761,12 @@ public class GameFlowController : MonoBehaviour
         UpdateHPUI();
         UpdateRoundUI();
         UpdateBulletUI();
+        UpdateToolUI();
         UpdateInstructionUI();
     }
     
     void UpdateTurnUI()
     {
-        // Update turn text
         if (turnText != null)
         {
             turnText.text = gameState.playerTurn ? 
@@ -317,13 +774,11 @@ public class GameFlowController : MonoBehaviour
             turnText.color = gameState.playerTurn ? Color.green : Color.yellow;
         }
         
-        // Show/hide panels - ONLY if not processing and not empty
         if (playerTurnPanel != null)
         {
             bool shouldShow = gameState.gameActive && 
                             gameState.playerTurn && 
-                            !isProcessingTurn &&
-                            !chamberManager.NeedToReload();
+                            !isProcessingTurn;
             playerTurnPanel.SetActive(shouldShow);
         }
         
@@ -335,7 +790,6 @@ public class GameFlowController : MonoBehaviour
             dealerTurnPanel.SetActive(shouldShow);
         }
         
-        // Update button interactivity based on game state
         if (shootSelfButton != null)
             shootSelfButton.interactable = gameState.gameActive && gameState.playerTurn && !isProcessingTurn;
         
@@ -383,19 +837,59 @@ public class GameFlowController : MonoBehaviour
             
             if (gameState.NeedToReload())
             {
+                bulletCountText.text += " (RELOAD!)";
                 bulletCountText.color = Color.red;
-                bulletCountText.text += " (EMPTY)";
             }
             else if (remaining <= 2)
             {
                 bulletCountText.color = Color.yellow;
-                bulletCountText.text += " (LOW)";
             }
             else
             {
-                bulletCountText.color = Color.green;
-                bulletCountText.text += " (READY)";
+                bulletCountText.color = Color.white;
             }
+        }
+    }
+    
+    void UpdateToolUI()
+    {
+        if (playerToolsText != null)
+        {
+            string toolText = "Player Tools: ";
+            if (gameState.playerTools.Count == 0)
+            {
+                toolText += "None";
+            }
+            else
+            {
+                foreach (var tool in gameState.playerTools)
+                {
+                    toolText += GetToolShortName(tool.type) + " ";
+                }
+            }
+            playerToolsText.text = toolText;
+            playerToolsText.color = gameState.playerTools.Count > 0 ? Color.green : Color.gray;
+        }
+        
+        if (dealerToolsText != null)
+        {
+            string toolText = "Dealer Tools: ";
+            if (gameState.dealerTools.Count == 0)
+            {
+                toolText += "None";
+            }
+            else
+            {
+                toolText += $"{gameState.dealerTools.Count} hidden";
+            }
+            dealerToolsText.text = toolText;
+        }
+        
+        // Update hand saw indicator
+        if (instructionText != null && gameState.nextShotDoubleDamage)
+        {
+            string sawUser = gameState.handSawUsedByPlayer ? "Player" : "Dealer";
+            instructionText.text += $"\n⚔️ {sawUser}'s next shot deals 2x damage!";
         }
     }
     
@@ -403,164 +897,206 @@ public class GameFlowController : MonoBehaviour
     {
         if (instructionText != null)
         {
+            string instructions = "";
+            
             if (!gameState.gameActive)
             {
                 if (gameState.gameOver)
                 {
-                    instructionText.text = gameState.playerWins >= 2 ? 
-                        "🏆 YOU WIN! Press R to restart" : 
-                        "😞 DEALER WINS! Press R to restart";
+                    instructions = "Game Over! Press R to restart.";
                 }
                 else
                 {
-                    instructionText.text = "Round over! Next round starting...";
+                    instructions = "Round Over! Starting next round...";
                 }
             }
             else if (gameState.playerTurn)
             {
+                instructions = "Your turn!\n";
+                instructions += "1: Shoot Self | 2: Shoot Dealer\n";
+                
+                if (gameState.playerTools.Count > 0)
+                {
+                    instructions += "T: Use Tool | ";
+                }
+                
                 if (chamberManager.NeedToReload())
                 {
-                    instructionText.text = "Reloading chamber...";
-                }
-                else if (isProcessingTurn)
-                {
-                    instructionText.text = "Processing...";
-                }
-                else
-                {
-                    instructionText.text = "Choose who to shoot:";
+                    instructions += "\n⚠️ Need to reload!";
                 }
             }
             else
             {
-                if (isProcessingTurn)
-                {
-                    instructionText.text = "Dealer is acting...";
-                }
-                else
-                {
-                    instructionText.text = "Dealer is thinking...";
-                }
+                instructions = "Dealer's turn... thinking...";
             }
+            
+            instructionText.text = instructions;
         }
-    }
-    
-    // ========== COROUTINES ==========
-    
-    IEnumerator AutoNextRound()
-    {
-        Debug.Log($"Waiting {roundTransitionTime} seconds before next round...");
-        yield return new WaitForSeconds(roundTransitionTime);
-        StartNewRound();
     }
     
     // ========== INPUT HANDLING ==========
     
     void Update()
     {
-        HandleDebugInput();
+        if (!gameState.gameActive || isProcessingTurn) return;
+        
         HandleGameInput();
+        HandleDebugInput();
     }
     
     void HandleGameInput()
     {
-        // Don't process if we're in the middle of something
-        if (isProcessingTurn) return;
-        
-        // Player input (keyboard alternative to buttons)
-        if (gameState.gameActive && gameState.playerTurn && !chamberManager.NeedToReload())
+        // Player controls
+        if (gameState.playerTurn)
         {
+            // Shoot commands
             if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
             {
-                Debug.Log("Player (keyboard) shoots self");
                 OnShootChoice(true);
             }
-            
-            if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+            else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
             {
-                Debug.Log("Player (keyboard) shoots dealer");
                 OnShootChoice(false);
+            }
+            
+            // Tool controls
+            if (Input.GetKeyDown(KeyCode.T))
+            {
+                if (!isSelectingTool)
+                {
+                    ShowToolSelection();
+                }
+                else
+                {
+                    HideToolSelection();
+                }
+            }
+            
+            // Shoot with space (skip tool selection)
+            if (Input.GetKeyDown(KeyCode.Space) && isSelectingTool)
+            {
+                HideToolSelection();
             }
         }
         
-        // Next round
-        if (Input.GetKeyDown(KeyCode.N) && gameState.ShouldStartNewRound())
+        // Global controls
+        if (Input.GetKeyDown(KeyCode.N))
         {
-            Debug.Log("Manual next round");
-            StartNewRound();
+            if (gameState.ShouldStartNewRound())
+            {
+                StartNewRound();
+            }
         }
         
-        // Restart game
         if (Input.GetKeyDown(KeyCode.R))
         {
             RestartGame();
-        }
-        
-        // Force reload (debug)
-        if (Input.GetKeyDown(KeyCode.L) && debugMode)
-        {
-            Debug.Log("Force reload");
-            chamberManager.ReloadChamber();
-            UpdateBulletUI();
         }
     }
     
     void HandleDebugInput()
     {
-        if (!debugMode) return;
-        
-        if (Input.GetKeyDown(KeyCode.F1))
+        if (debugMode)
         {
-            Debug.Log("=== DEBUG INFO ===");
-            Debug.Log($"Game Active: {gameState.gameActive}");
-            Debug.Log($"Player Turn: {gameState.playerTurn}");
-            Debug.Log($"Gets Extra Turn: {gameState.getsExtraTurn}");
-            Debug.Log($"Need Reload: {chamberManager.NeedToReload()}");
-            Debug.Log($"Is Processing: {isProcessingTurn}");
-            gameState.DebugBulletStatus();
-        }
-        
-        if (Input.GetKeyDown(KeyCode.F2))
-        {
-            gameState.DebugGameStatus();
+            if (Input.GetKeyDown(KeyCode.F1))
+            {
+                gameState.DebugBulletStatus();
+            }
+            
+            if (Input.GetKeyDown(KeyCode.F2))
+            {
+                gameState.DebugGameStatus();
+            }
+            
+            if (Input.GetKeyDown(KeyCode.F3))
+            {
+                chamberManager.DebugChamberState();
+            }
+            
+            if (Input.GetKeyDown(KeyCode.F4))
+            {
+                // Debug tool info
+                Debug.Log($"Player tools: {gameState.playerTools.Count}");
+                Debug.Log($"Dealer tools: {gameState.dealerTools.Count}");
+                Debug.Log($"Hand saw active: {gameState.handSawActive}");
+                Debug.Log($"Next shot double damage: {gameState.nextShotDoubleDamage}");
+            }
+            
+            // Force reload
+            if (Input.GetKeyDown(KeyCode.F5))
+            {
+                Debug.Log("Force reloading...");
+                chamberManager.ReloadChamber();
+                UpdateBulletUI();
+            }
+            
+            // Force dealer to use specific tool
+            if (Input.GetKeyDown(KeyCode.F6) && !gameState.playerTurn)
+            {
+                StartCoroutine(DealerUseTool());
+            }
         }
     }
     
-    // ========== GAME CONTROL ==========
+    // ========== GAME FLOW ==========
     
-    void RestartGame()
+    IEnumerator AutoNextRound()
     {
-        Debug.Log("\n" + "🔄".Repeat(20));
-        Debug.Log("🔄 RESTARTING ENTIRE GAME");
-        Debug.Log("🔄".Repeat(20));
+        Debug.Log("Waiting for next round...");
+        yield return new WaitForSeconds(roundTransitionTime);
         
+        StartNewRound();
+    }
+    
+    public void RestartGame()
+    {
+        Debug.Log("\n🔄 RESTARTING GAME...");
+        
+        // Reset game state
         gameState.currentRound = 1;
         gameState.playerWins = 0;
         gameState.totalRoundsPlayed = 0;
         gameState.playerWonLastRound = false;
-        gameState.gameOver = false;
         gameState.gameActive = false;
-        isProcessingTurn = false;
+        gameState.gameOver = false;
+        gameState.playerTurn = true;
+        gameState.getsExtraTurn = false;
         
+        // Clear tools
+        gameState.ClearTools();
+        
+        // Clear chamber
+        foreach (var shell in gameState.chamberShells)
+        {
+            shell.type = GameState.ShellType.Empty;
+            shell.fired = false;
+        }
+        gameState.currentChamberIndex = 0;
+        gameState.totalBulletsLoaded = 0;
+        gameState.bulletsFired = 0;
+        
+        // Start fresh
         StartNewRound();
+    }
+    
+    // ========== UTILITY METHODS ==========
+    
+    public bool IsGameActive()
+    {
+        return gameState.gameActive && !gameState.gameOver && !isProcessingTurn;
+    }
+    
+    public void SetDealerThinkTime(float time)
+    {
+        dealerThinkTime = Mathf.Clamp(time, 0.5f, 5f);
     }
 }
 
-// Extension method for string repetition
+// Extension method for string repeating
 public static class StringExtensions
 {
-    public static string Repeat(this char chatToRepeat, int repeat)
+    public static string Repeat(this char ch, int count)
     {
-        return new string(chatToRepeat, repeat);
-    }
-    
-    public static string Repeat(this string stringToRepeat, int repeat)
-    {
-        var builder = new System.Text.StringBuilder();
-        for (int i = 0; i < repeat; i++)
-        {
-            builder.Append(stringToRepeat);
-        }
-        return builder.ToString();
+        return new string(ch, count);
     }
 }

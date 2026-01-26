@@ -1,5 +1,8 @@
+
+
+
 // ########
-// UPDATE: Separate Live/Blank
+// UPDATE: Consecutive bullet placement
 // ######## 
 
 using UnityEngine;
@@ -15,7 +18,7 @@ public class BulletSystem : MonoBehaviour
     [Header("Difficulty")]
     [SerializeField] bool adaptiveDifficulty = true;
     
-    // Generate bullets with SOME LIVE, SOME BLANK
+    // Generate bullets with SOME LIVE, SOME BLANK - CONSECUTIVE placement
     public (int totalBullets, int liveCount, int[] livePositions, int[] blankPositions) GenerateBullets(
         int roundNumber, float playerWinRate, bool playerWonLast)
     {
@@ -28,13 +31,37 @@ public class BulletSystem : MonoBehaviour
         
         int blankCount = totalBullets - liveCount;
         
-        Debug.Log($"Loading {totalBullets} bullets: {liveCount} LIVE, {blankCount} BLANK");
+        Debug.Log($"Loading {totalBullets} bullets: {liveCount} LIVE, {blankCount} BLANK (consecutive placement)");
         
-        // 3. Pick RANDOM positions for live bullets
-        int[] livePositions = PickRandomPositions(liveCount, 8);
+        // 3. Pick CONSECUTIVE positions starting from chamber 0
+        // All bullets (live + blank) occupy positions 0 through (totalBullets-1)
+        int[] allBulletPositions = new int[totalBullets];
+        for (int i = 0; i < totalBullets; i++)
+        {
+            allBulletPositions[i] = i;
+        }
         
-        // 4. Pick RANDOM positions for blank bullets (different from live)
-        int[] blankPositions = PickRandomPositions(blankCount, 8, livePositions);
+        // 4. Shuffle the bullet types within the consecutive positions
+        List<int> shuffledIndices = new List<int>(allBulletPositions);
+        shuffledIndices = Shuffle(shuffledIndices);
+        
+        // 5. Assign live bullets to random positions within the consecutive range
+        int[] livePositions = new int[liveCount];
+        for (int i = 0; i < liveCount; i++)
+        {
+            livePositions[i] = shuffledIndices[i];
+        }
+        
+        // 6. Assign blank bullets to remaining positions
+        int[] blankPositions = new int[blankCount];
+        for (int i = 0; i < blankCount; i++)
+        {
+            blankPositions[i] = shuffledIndices[liveCount + i];
+        }
+        
+        // Sort for clarity
+        System.Array.Sort(livePositions);
+        System.Array.Sort(blankPositions);
         
         return (totalBullets, liveCount, livePositions, blankPositions);
     }
@@ -57,34 +84,6 @@ public class BulletSystem : MonoBehaviour
         return Mathf.Clamp(bullets, minTotalBullets, 8);
     }
     
-    // Pick random unique positions
-    int[] PickRandomPositions(int count, int maxPositions, int[] excludePositions = null)
-    {
-        List<int> allPositions = new List<int>();
-        for (int i = 0; i < maxPositions; i++) allPositions.Add(i);
-        
-        // Remove positions we can't use (like already taken by live shells)
-        if (excludePositions != null)
-        {
-            foreach (int excluded in excludePositions)
-            {
-                allPositions.Remove(excluded);
-            }
-        }
-        
-        // Shuffle
-        allPositions = Shuffle(allPositions);
-        
-        // Take first 'count' positions
-        int[] result = new int[count];
-        for (int i = 0; i < count; i++)
-        {
-            result[i] = allPositions[i];
-        }
-        
-        return result;
-    }
-    
     List<T> Shuffle<T>(List<T> list)
     {
         for (int i = 0; i < list.Count; i++)
@@ -95,5 +94,45 @@ public class BulletSystem : MonoBehaviour
             list[j] = temp;
         }
         return list;
+    }
+
+    // 
+    // 
+    // 
+    void CreateChamberVisualization(int totalBullets, int[] livePositions, int[] blankPositions)
+    {
+        // Create array to track bullet types
+        string[] bulletTypes = new string[totalBullets];
+        
+        // Initialize all as empty
+        for (int i = 0; i < totalBullets; i++)
+            bulletTypes[i] = "?";
+        
+        // Mark live bullets
+        foreach (int pos in livePositions)
+        {
+            if (pos < totalBullets) bulletTypes[pos] = "L";
+        }
+        
+        // Mark blank bullets
+        foreach (int pos in blankPositions)
+        {
+            if (pos < totalBullets) bulletTypes[pos] = "B";
+        }
+        
+        // Build simple visual
+        string positionLine = "Position: ";
+        string typeLine = "Type:     ";
+        
+        for (int i = 0; i < totalBullets; i++)
+        {
+            positionLine += $"{i} ";
+            typeLine += $"{bulletTypes[i]} ";
+        }
+        
+        Debug.Log($"\n🔫 CHAMBER LAYOUT:");
+        Debug.Log(positionLine);
+        Debug.Log(typeLine);
+        Debug.Log($"Total: {totalBullets} bullets ({livePositions.Length} live, {blankPositions.Length} blank)");
     }
 }
