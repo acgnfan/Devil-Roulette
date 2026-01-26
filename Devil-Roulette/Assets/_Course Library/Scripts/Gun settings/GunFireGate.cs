@@ -15,9 +15,14 @@ public class GunFireGate : MonoBehaviour
     public float selfFireDotThreshold = 0.8f;
 
     [Header("Fire Components")]
-    public PlayQuickSound playQuickSound;
+    public PlayQuickSound liveFireSound;          
+    public PlayQuickSound blankFireSound; 
     public ShotgunFireController shotgunFireController;
     public MuzzleFlashLight muzzleFlashFire;
+
+    [Header("Game Flow")]
+    public GameState gameState;
+    public GameFlowController gameFlowController;
 
     [Header("Debug")]
     public bool drawDebugRay = true;
@@ -25,15 +30,32 @@ public class GunFireGate : MonoBehaviour
     // XR Grab Interactable -> Activate 事件 绑定这个
     public void OnActivate()
     {
-        if (!CanFire())
+        // 判断目标
+        bool aimingSelf = IsAimingAtSelf();
+        bool aimingDealer = IsHoveringDealer();
+
+        // 两者都不是 → 不允许开火
+        if (!aimingSelf && !aimingDealer)
             return;
 
-        Fire();
-    }
+        GameState.ShellType shellType = gameState.GetCurrentChamberType();
+        bool isLive = (shellType == GameState.ShellType.Live);
 
-    bool CanFire()
-    {
-        return IsAimingAtSelf() || IsHoveringDealer();
+        // 先执行枪的物理 / 表现层开火
+        Fire(isLive, shellType);
+
+        // 再通知 Game Flow（逻辑层）
+        if (gameFlowController != null)
+        {
+            if (aimingSelf)
+            {
+                gameFlowController.OnShootChoice(true);
+            }
+            else if (aimingDealer)
+            {
+                gameFlowController.OnShootChoice(false);
+            }
+        }
     }
 
     #region Self Check
@@ -68,21 +90,28 @@ public class GunFireGate : MonoBehaviour
     #endregion
 
     #region Fire Logic
-    void Fire()
+    void Fire(bool isLive, GameState.ShellType shellType)
     {
-        // 1️⃣ 声音
-        if (playQuickSound != null)
-            playQuickSound.Play();
+        if (isLive)
+        {
+            if (liveFireSound != null)
+                liveFireSound.Play();
 
-        // 2️⃣ 枪口火光
-        if (muzzleFlashFire != null)
-            muzzleFlashFire.Fire();
+            if (muzzleFlashFire != null)
+                muzzleFlashFire.Fire();
+        }
+        else if (shellType == GameState.ShellType.Blank)
+        {
+            if (blankFireSound != null)
+                blankFireSound.Play();
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ Tried to fire EMPTY chamber");
+        }
 
-        // 3️⃣ 原有开火逻辑（弹药 / 回座 / 冷却 / 锁定等）
         if (shotgunFireController != null)
             shotgunFireController.OnFireActivated();
-
-        // Debug.Log("🔥 Shotgun Fired (Validated Target)");
     }
     #endregion
 }

@@ -1,6 +1,5 @@
 using UnityEngine;
 
-
 [RequireComponent(typeof(Rigidbody))]
 public class HoverFloat : MonoBehaviour
 {
@@ -11,8 +10,9 @@ public class HoverFloat : MonoBehaviour
     ReturnToOrigin returner;
     UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable grab;
 
-    Vector3 originalPos;
+    Vector3 referencePos;   // 🔒 固定参考高度
     Vector3 targetPos;
+
     bool hoverActive = false;
 
     void Awake()
@@ -21,8 +21,9 @@ public class HoverFloat : MonoBehaviour
         returner = GetComponent<ReturnToOrigin>();
         grab = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>();
 
-        originalPos = rb.position;
-        targetPos = originalPos;
+        // ✅ 只在 Awake / Start 记录一次
+        referencePos = rb.position;
+        targetPos = referencePos;
     }
 
     void Update()
@@ -37,7 +38,7 @@ public class HoverFloat : MonoBehaviour
         Vector3 newPos = Vector3.Lerp(
             rb.position,
             targetPos,
-            Time.fixedDeltaTime * floatSpeed
+            Time.deltaTime * floatSpeed
         );
 
         rb.MovePosition(newPos);
@@ -51,8 +52,8 @@ public class HoverFloat : MonoBehaviour
             (grab != null && !grab.enabled))
             return;
 
-        originalPos = rb.position;
-        targetPos = originalPos + Vector3.up * floatHeight;
+        // ❗ 不再改 referencePos
+        targetPos = referencePos + Vector3.up * floatHeight;
 
         rb.useGravity = false;
         rb.linearVelocity = Vector3.zero;
@@ -67,8 +68,17 @@ public class HoverFloat : MonoBehaviour
         if (returner != null && returner.IsBusy)
             return;
 
-        targetPos = originalPos;
+        targetPos = referencePos;
         rb.useGravity = true;
         hoverActive = false;
+    }
+
+    /* ================= 对外接口 ================= */
+
+    // 🔁 给 ReturnToOrigin 用：真正“落位”后刷新基准高度
+    public void ResetReferencePos()
+    {
+        referencePos = rb.position;
+        targetPos = referencePos;
     }
 }
