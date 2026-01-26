@@ -630,7 +630,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &167406626
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2666,7 +2666,7 @@ MonoBehaviour:
   gameState: {fileID: 822395353}
   bulletSystem: {fileID: 1330196468}
   chamberManager: {fileID: 1987301478}
-  toolSystem: {fileID: 0}
+  toolSystem: {fileID: 820754873}
   shootSelfButton: {fileID: 124811034}
   shootOpponentButton: {fileID: 1038102116}
   turnText: {fileID: 0}
@@ -3973,12 +3973,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1247084727}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aa39ed4fa154d40a393f51dfb6313ff7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ToolPlacementUI
-  toolPlacementPanel: {fileID: 0}
+  toolPlacementPanel: {fileID: 1086319299}
   toolUsagePanel: {fileID: 0}
   placementInstructionText: {fileID: 0}
   toolInfoText: {fileID: 0}

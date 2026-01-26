@@ -646,9 +646,37 @@ public class GameState : MonoBehaviour
     
     // Get tools for current round
     // public void DistributeTools(ToolSystem toolSystem)
-    public void DistributeTools()
+    // public void DistributeTools()
+    // {
+    //     // Clear old tools (tools don't carry between rounds)
+    //     playerTools.Clear();
+    //     dealerTools.Clear();
+    //     handSawActive = false;
+    //     nextShotDoubleDamage = false;
+        
+    //     // Get tool count for this round
+    //     int toolCount = GetToolCountForRound();
+        
+    //     // Get random tools for each player
+    //     // playerTools = toolSystem.GetRandomTools(toolCount);
+    //     // dealerTools = toolSystem.GetRandomTools(toolCount);
+    //     // playerTools = toolSystem.GetToolsForRound(currentRound, true);
+    //     // dealerTools = toolSystem.GetToolsForRound(currentRound, false);
+    //     playerTools = ToolSystem.Instance.GetToolsForRound(currentRound, true);
+    //     dealerTools = ToolSystem.Instance.GetToolsForRound(currentRound, false);
+        
+    //     Debug.Log($"Tool Distribution - Round {currentRound} ({toolCount} tools each):");
+    //     Debug.Log($"  Player: {GetToolList(true)}");
+    //     Debug.Log($"  Dealer: {GetToolList(false)}");
+    // }
+
+    // 
+    // 
+    // 
+    // Clear and get fresh tools at round start
+    public void InitializeRoundTools()
     {
-        // Clear old tools (tools don't carry between rounds)
+        // Clear all tools at round start
         playerTools.Clear();
         dealerTools.Clear();
         handSawActive = false;
@@ -657,18 +685,97 @@ public class GameState : MonoBehaviour
         // Get tool count for this round
         int toolCount = GetToolCountForRound();
         
-        // Get random tools for each player
-        // playerTools = toolSystem.GetRandomTools(toolCount);
-        // dealerTools = toolSystem.GetRandomTools(toolCount);
-        // playerTools = toolSystem.GetToolsForRound(currentRound, true);
-        // dealerTools = toolSystem.GetToolsForRound(currentRound, false);
-        playerTools = ToolSystem.Instance.GetToolsForRound(currentRound, true);
-        dealerTools = ToolSystem.Instance.GetToolsForRound(currentRound, false);
+        // Get fresh tools
+        List<ToolSystem.Tool> newPlayerTools = ToolSystem.Instance.GetToolsForRound(currentRound, true);
+        List<ToolSystem.Tool> newDealerTools = ToolSystem.Instance.GetToolsForRound(currentRound, false);
         
-        Debug.Log($"Tool Distribution - Round {currentRound} ({toolCount} tools each):");
-        Debug.Log($"  Player: {GetToolList(true)}");
-        Debug.Log($"  Dealer: {GetToolList(false)}");
+        // Add the new tools
+        playerTools.AddRange(newPlayerTools);
+        dealerTools.AddRange(newDealerTools);
+        
+        // Ensure not over maximum (8)
+        if (playerTools.Count > 8) 
+        {
+            Debug.Log($"Player has {playerTools.Count} tools, capping at 8");
+            playerTools = playerTools.GetRange(0, 8);
+        }
+        if (dealerTools.Count > 8) 
+        {
+            Debug.Log($"Dealer has {dealerTools.Count} tools, capping at 8");
+            dealerTools = dealerTools.GetRange(0, 8);
+        }
+        
+        Debug.Log($"=== ROUND {currentRound} START === ");
+        Debug.Log($"Fresh tools: {toolCount} each (MAX: 8)");
+        Debug.Log($"Player: {playerTools.Count} tools - {GetToolList(true)}");
+        Debug.Log($"Dealer: {dealerTools.Count} tools - {GetToolList(false)}");
     }
+
+    // Add more tools during reload (accumulate, max 8)
+    public void AddToolsOnReload()
+    {
+        // Get tool count for this round
+        int toolCount = GetToolCountForRound();
+        
+        // Get additional tools
+        List<ToolSystem.Tool> newPlayerTools = ToolSystem.Instance.GetToolsForRound(currentRound, true);
+        List<ToolSystem.Tool> newDealerTools = ToolSystem.Instance.GetToolsForRound(currentRound, false);
+        
+        // Check if we have room for new tools
+        int playerSpace = 8 - playerTools.Count;
+        int dealerSpace = 8 - dealerTools.Count;
+        
+        if (playerSpace <= 0 && dealerSpace <= 0)
+        {
+            Debug.Log("=== RELOAD: Both players have MAX tools (8), no more can be added ===");
+            return;
+        }
+        
+        // Add as many as we have space for
+        int playerToAdd = Mathf.Min(newPlayerTools.Count, playerSpace);
+        int dealerToAdd = Mathf.Min(newDealerTools.Count, dealerSpace);
+        
+        if (playerToAdd > 0)
+        {
+            playerTools.AddRange(newPlayerTools.GetRange(0, playerToAdd));
+        }
+        
+        if (dealerToAdd > 0)
+        {
+            dealerTools.AddRange(newDealerTools.GetRange(0, dealerToAdd));
+        }
+        
+        Debug.Log($"=== RELOAD: Adding tools (MAX 8) ===");
+        Debug.Log($"Player: Added {playerToAdd}, now {playerTools.Count}/8 - Space: {8 - playerTools.Count}");
+        Debug.Log($"Dealer: Added {dealerToAdd}, now {dealerTools.Count}/8 - Space: {8 - dealerTools.Count}");
+        
+        if (playerTools.Count >= 8)
+            Debug.Log("Player has MAX tools (8)!");
+        if (dealerTools.Count >= 8)
+            Debug.Log("Dealer has MAX tools (8)!");
+    }
+
+    // Remove the old DistributeTools() method and replace with:
+    public void ClearTools()
+    {
+        playerTools.Clear();
+        dealerTools.Clear();
+        handSawActive = false;
+        nextShotDoubleDamage = false;
+        Debug.Log("All tools cleared");
+    }
+
+    // Optional: Helper method to check if at max capacity
+    public bool IsPlayerAtMaxTools()
+    {
+        return playerTools.Count >= 8;
+    }
+
+    public bool IsDealerAtMaxTools()
+    {
+        return dealerTools.Count >= 8;
+    }
+// 
     
     int GetToolCountForRound()
     {
@@ -739,13 +846,13 @@ public class GameState : MonoBehaviour
     }
     
     // Clear tools (between rounds)
-    public void ClearTools()
-    {
-        playerTools.Clear();
-        dealerTools.Clear();
-        handSawActive = false;
-        nextShotDoubleDamage = false;
-    }
+    // public void ClearTools()
+    // {
+    //     playerTools.Clear();
+    //     dealerTools.Clear();
+    //     handSawActive = false;
+    //     nextShotDoubleDamage = false;
+    // }
     
     // ========== DEBUG HELPERS ==========
     

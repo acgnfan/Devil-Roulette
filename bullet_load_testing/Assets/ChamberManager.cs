@@ -190,7 +190,8 @@ public class ChamberManager : MonoBehaviour
         // Collect all unfired bullet chambers (live or blank)
         List<int> unfiredBulletChambers = new List<int>();
         
-        for (int i = 0; i < 8; i++)
+        // for (int i = 0; i < 8; i++)
+        for (int i = 0; i < gameState.chamberShells.Count; i++)  // Changed from i < 8
         {
             if (gameState.chamberShells[i].type != GameState.ShellType.Empty &&
                 !gameState.chamberShells[i].fired)

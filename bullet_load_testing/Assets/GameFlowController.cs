@@ -6,6 +6,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using System.Collections.Generic;
 
 public class GameFlowController : MonoBehaviour
 {
@@ -29,10 +30,10 @@ public class GameFlowController : MonoBehaviour
     public GameObject playerTurnPanel;
     public GameObject dealerTurnPanel;
     
-    [Header("TOOL UI")]
-    public GameObject toolSelectionPanel;
-    public Button[] toolButtons; // 6 buttons for tools
-    public Text toolInfoText;
+    [Header("TOOL UI")]                                    // No use now 
+    public GameObject toolSelectionPanel;                  // No use now 
+    public Button[] toolButtons; // 6 buttons for tools    // No use now 
+    public Text toolInfoText;                              // No use now 
     
     [Header("GAME SETTINGS")]
     public bool autoStart = true;
@@ -43,7 +44,7 @@ public class GameFlowController : MonoBehaviour
     public bool debugMode = false;
     private bool isProcessingTurn = false;
     private bool isSelectingTool = false;
-    private bool hasUsedToolThisTurn = false;
+    // private bool hasUsedToolThisTurn = false;          // player can use multiple tools before shooting 
     
     void Start()
     {
@@ -104,10 +105,11 @@ public class GameFlowController : MonoBehaviour
         gameState.getsExtraTurn = false; 
         isProcessingTurn = false;
         isSelectingTool = false;
-        hasUsedToolThisTurn = false;
+        // hasUsedToolThisTurn = false;
         
         // DISTRIBUTE TOOLS for this round
-        gameState.DistributeTools();
+        // gameState.DistributeTools();
+        gameState.InitializeRoundTools();
         
         // Initial reload
         chamberManager.ReloadChamber();
@@ -237,14 +239,24 @@ public class GameFlowController : MonoBehaviour
     IEnumerator PlayerTurnSequence()
     {
         isProcessingTurn = false;
-        hasUsedToolThisTurn = false;
+        // hasUsedToolThisTurn = false;
         
         // Check if need to reload BEFORE showing buttons
         if (chamberManager.NeedToReload())
         {
             Debug.Log("🔁 Reloading before player's turn...");
             chamberManager.ReloadChamber();
+
+            // DISTRIBUTE NEW TOOLS (ACCUMULATE)
+            // gameState.DistributeTools(); // <-- Add tools on reload
+            gameState.AddToolsOnReload();
+
+            // Always player's turn after reload
+            gameState.playerTurn = true;
+
             UpdateBulletUI();
+            UpdateToolUI(); // Update
+
             yield return new WaitForSeconds(0.5f);
         }
         
@@ -268,23 +280,53 @@ public class GameFlowController : MonoBehaviour
         {
             Debug.Log("🔁 Reloading before dealer's turn...");
             chamberManager.ReloadChamber();
+
+            // DISTRIBUTE NEW TOOLS (ACCUMULATE)
+            // gameState.DistributeTools(); // <-- Add tools on reload
+            gameState.AddToolsOnReload();
+
+            // Switch to player's turn after reload
+            gameState.playerTurn = true;
+
             UpdateBulletUI();
+            UpdateToolUI(); // Update
             yield return new WaitForSeconds(0.5f);
+
+            //
+            // 
+            // 
+            // Player goes after reload
+            StartCoroutine(PlayerTurnSequence());
+            yield break;
         }
         
         UpdateAllUI();
         yield return new WaitForSeconds(0.5f);
         
         // Dealer AI decision: use tools first if available
-        if (gameState.dealerTools.Count > 0 && Random.value < 0.7f) // 70% chance to use tool
+        // if (gameState.dealerTools.Count > 0 && Random.value < 0.7f) // 70% chance to use tool
+        // {
+        //     yield return StartCoroutine(DealerUseTool());
+        // }
+        // else
+        // {
+            // Then shoot
+        //     StartCoroutine(DealerTakeTurn());
+        // }
+
+        // 
+        // 
+        // 
+        // Dealer can use MULTIPLE tools if available
+        while (gameState.dealerTools.Count > 0 && Random.value < 0.7f) // 70% chance per tool
         {
             yield return StartCoroutine(DealerUseTool());
+            yield return new WaitForSeconds(0.5f);
         }
-        else
-        {
-            // Then shoot
-            StartCoroutine(DealerTakeTurn());
-        }
+        
+        // Then shoot
+        StartCoroutine(DealerTakeTurn());
+
     }
     
     IEnumerator DealerUseTool()
@@ -300,16 +342,16 @@ public class GameFlowController : MonoBehaviour
             
             Debug.Log($"Dealer decides to use {toolToUse}");
             // UseTool(false, toolToUse);
-            UseSpecificTool(false, toolToUse);
+            UseSpecificTool(false, toolToUse); 
             
             // Wait then take turn
             yield return new WaitForSeconds(1f);
-            StartCoroutine(DealerTakeTurn());
+            // StartCoroutine(DealerTakeTurn());
         }
-        else
-        {
-            StartCoroutine(DealerTakeTurn());
-        }
+        // else
+        // {
+        //     StartCoroutine(DealerTakeTurn());
+        // }
     }
     
     void HandleRoundEnd()
@@ -375,7 +417,7 @@ public class GameFlowController : MonoBehaviour
         }
         
         isSelectingTool = true;
-        hasUsedToolThisTurn = false;
+        // hasUsedToolThisTurn = false;
         
         // Show tool panel
         if (toolSelectionPanel != null)
@@ -383,6 +425,15 @@ public class GameFlowController : MonoBehaviour
         
         // Update which tools are available
         UpdateToolButtons();
+
+        // LIST TOOLS IN CONSOLE
+        Debug.Log("=== PLAYER TOOLS AVAILABLE ===");
+        for (int i = 0; i < gameState.playerTools.Count; i++)
+        {
+            var tool = gameState.playerTools[i];
+            Debug.Log($"{i+1}. {tool.name} ({tool.type}) - {tool.description}");
+        }
+        Debug.Log("===============================");
         
         Debug.Log("Select a tool to use (or press Space to shoot)");
         if (toolInfoText != null)
@@ -408,7 +459,8 @@ public class GameFlowController : MonoBehaviour
             if (i < toolOrder.Length)
             {
                 bool hasTool = gameState.HasTool(true, toolOrder[i]);
-                toolButtons[i].interactable = hasTool && !hasUsedToolThisTurn;
+                // toolButtons[i].interactable = hasTool && !hasUsedToolThisTurn;
+                toolButtons[i].interactable = hasTool; // <-- CHANGED
                 
                 // Update button text
                 Text buttonText = toolButtons[i].GetComponentInChildren<Text>();
@@ -436,7 +488,8 @@ public class GameFlowController : MonoBehaviour
     
     void OnToolSelected(int toolIndex)
     {
-        if (!isSelectingTool || hasUsedToolThisTurn) return;
+        // if (!isSelectingTool || hasUsedToolThisTurn) return;
+        if (!isSelectingTool) return;
         
         ToolSystem.ToolType[] toolOrder = {
             ToolSystem.ToolType.BurnerPhone,
@@ -455,30 +508,44 @@ public class GameFlowController : MonoBehaviour
             {
                 // UseTool(true, selectedTool);
                 UseSpecificTool(true, selectedTool);
-                hasUsedToolThisTurn = true;
+                // hasUsedToolThisTurn = true;
+
+                // After using tool, update buttons but DON'T hide selection
+                // Player can use another tool if they want
+                UpdateToolButtons();
                 
                 // Ask if player wants to use another tool
-                if (gameState.playerTools.Count > 0)
+                // if (gameState.playerTools.Count > 0)
+                // {
+                //     StartCoroutine(AskForAnotherTool());
+                // }
+                // else
+                // {
+                //     HideToolSelection();
+                // }
+
+                //
+                //
+                //
+                // Check if player still has tools
+                if (gameState.playerTools.Count == 0)
                 {
-                    StartCoroutine(AskForAnotherTool());
-                }
-                else
-                {
+                    // No tools left, hide selection
                     HideToolSelection();
                 }
             }
         }
     }
     
-    IEnumerator AskForAnotherTool()
-    {
-        if (toolInfoText != null)
-            toolInfoText.text = "Use another tool? (Click tool or Space to shoot)";
+    // IEnumerator AskForAnotherTool()
+    // {
+    //     if (toolInfoText != null)
+    //         toolInfoText.text = "Use another tool? (Click tool or Space to shoot)";
         
-        yield return new WaitForSeconds(0.5f);
-        UpdateToolButtons(); // Re-enable buttons for another tool
-        hasUsedToolThisTurn = false;
-    }
+    //     yield return new WaitForSeconds(0.5f);
+    //     UpdateToolButtons(); // Re-enable buttons for another tool
+    //     // hasUsedToolThisTurn = false;
+    // }
     
     void HideToolSelection()
     {
@@ -943,56 +1010,191 @@ public class GameFlowController : MonoBehaviour
         HandleGameInput();
         HandleDebugInput();
     }
-    
-    void HandleGameInput()
+
+    // 
+    // 
+    // 
+    // Add this method to handle Shift+Number quick tool selection
+    void HandleQuickToolSelection()
     {
-        // Player controls
-        if (gameState.playerTurn)
+        // if (hasUsedToolThisTurn)
+        // {
+        //     Debug.Log("Already used a tool this turn!");
+        //     if (toolInfoText != null)
+        //         toolInfoText.text = "Already used a tool this turn!";
+        //     return;
+        // }
+        
+        // Map number keys to tool types
+        Dictionary<int, ToolSystem.ToolType> numberToTool = new Dictionary<int, ToolSystem.ToolType>()
         {
-            // Shoot commands
-            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
-            {
-                OnShootChoice(true);
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
-            {
-                OnShootChoice(false);
-            }
+            {3, ToolSystem.ToolType.BurnerPhone},
+            {4, ToolSystem.ToolType.MagnifyingGlass},
+            {5, ToolSystem.ToolType.Beer},
+            {6, ToolSystem.ToolType.Pills},
+            {7, ToolSystem.ToolType.HandSaw},
+            {8, ToolSystem.ToolType.Adrenaline}
+        };
+        
+        // Check Shift + Number keys 1-6
+        for (int number = 3; number <= 8; number++)
+        {
+            bool numberKeyPressed = Input.GetKeyDown(KeyCode.Alpha0 + number) || 
+                                (number <= 5 && Input.GetKeyDown(KeyCode.Keypad0 + number));
             
-            // Tool controls
-            if (Input.GetKeyDown(KeyCode.T))
+            if (numberKeyPressed && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
             {
-                if (!isSelectingTool)
+                if (numberToTool.TryGetValue(number, out ToolSystem.ToolType toolType))
                 {
-                    ShowToolSelection();
-                }
-                else
-                {
-                    HideToolSelection();
+                    if (gameState.HasTool(true, toolType))
+                    {
+                        Debug.Log($"Quick using {toolType} (Shift+{number})");
+                        UseSpecificTool(true, toolType);
+                        // hasUsedToolThisTurn = true;
+                        
+                        // Show feedback
+                        if (toolInfoText != null)
+                            toolInfoText.text = $"Used {toolType} (Shift+{number})";
+                            
+                        return;
+                    }
+                    else
+                    {
+                        Debug.Log($"Don't have {toolType}!");
+                        if (toolInfoText != null)
+                            toolInfoText.text = $"No {toolType} available!";
+                        return;
+                    }
                 }
             }
+        }
+    }
+    
+    // void HandleGameInput()
+    // {
+    //     // Player controls
+    //     if (gameState.playerTurn)
+    //     {
+    //         // Shoot commands
+    //         if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+    //         {
+    //             OnShootChoice(true);
+    //         }
+    //         else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+    //         {
+    //             OnShootChoice(false);
+    //         }
             
-            // Shoot with space (skip tool selection)
-            if (Input.GetKeyDown(KeyCode.Space) && isSelectingTool)
+    //         // Tool controls
+    //         if (Input.GetKeyDown(KeyCode.T))
+    //         {
+    //             if (!isSelectingTool)
+    //             {
+    //                 ShowToolSelection();
+    //             }
+    //             else
+    //             {
+    //                 HideToolSelection();
+    //             }
+    //         }
+            
+    //         // Shoot with space (skip tool selection)
+    //         if (Input.GetKeyDown(KeyCode.Space) && isSelectingTool)
+    //         {
+    //             HideToolSelection();
+    //         }
+    //     }
+        
+    //     // Global controls
+    //     if (Input.GetKeyDown(KeyCode.N))
+    //     {
+    //         if (gameState.ShouldStartNewRound())
+    //         {
+    //             StartNewRound();
+    //         }
+    //     }
+        
+    //     if (Input.GetKeyDown(KeyCode.R))
+    //     {
+    //         RestartGame();
+    //     }
+    // }
+
+    // 
+    // 
+    // 
+    void HandleGameInput()
+{
+    if (!gameState.gameActive || isProcessingTurn) return;
+    
+    // Player controls
+    if (gameState.playerTurn)
+    {
+        // Shoot commands
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+        {
+            OnShootChoice(true);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+        {
+            OnShootChoice(false);
+        }
+        
+        // Tool menu toggle
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            if (!isSelectingTool)
+            {
+                ShowToolSelection();
+            }
+            else
             {
                 HideToolSelection();
             }
         }
         
-        // Global controls
-        if (Input.GetKeyDown(KeyCode.N))
+        // QUICK TOOL SELECTION: Shift + Number (3-8)
+        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
         {
-            if (gameState.ShouldStartNewRound())
-            {
-                StartNewRound();
-            }
+            HandleQuickToolSelection();
         }
         
-        if (Input.GetKeyDown(KeyCode.R))
+        // Direct tool selection when menu is open
+        if (isSelectingTool)
         {
-            RestartGame();
+            // Number keys 3-8 for tool selection
+            for (int i = 3; i <= 8; i++)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha0 + i) || 
+                    (i <= 5 && Input.GetKeyDown(KeyCode.Keypad0 + i)))
+                {
+                    OnToolSelected(i - 1); // Convert to 0-based index
+                    return;
+                }
+            }
+            
+            // Cancel with ESC or Space
+            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Space))
+            {
+                HideToolSelection();
+            }
         }
     }
+    
+    // Global controls
+    if (Input.GetKeyDown(KeyCode.N))
+    {
+        if (gameState.ShouldStartNewRound())
+        {
+            StartNewRound();
+        }
+    }
+    
+    if (Input.GetKeyDown(KeyCode.R))
+    {
+        RestartGame();
+    }
+}
     
     void HandleDebugInput()
     {
