@@ -16,6 +16,7 @@ public class DealerGunInteractor : MonoBehaviour
     public Transform gun;
     public Rigidbody gunRb;
     public ReturnToOrigin gunReturn;
+    public GunFireGate gunFireGate;
 
     [Header("Gun Attach Points")]
     public Transform leftHandTarget;   // 枪栓
@@ -69,6 +70,8 @@ public class DealerGunInteractor : MonoBehaviour
         // 抓握
         SetHandGrip(1f);
 
+        yield return new WaitForSeconds(0.5f);
+
         // 枪移动到 dealer 面前
         yield return MoveGunTo(gunTargetFront);
     }
@@ -111,6 +114,27 @@ public class DealerGunInteractor : MonoBehaviour
 
         // 5️⃣ 枪回到桌面
         gunReturn.ForceReturn();
+    }
+
+    public void EmergencyPutDownGun()
+    {
+        SetHandGrip(0f);
+
+        leftHand.SetParent(null, true);
+        rightHand.SetParent(null, true);
+
+        leftHand.SetPositionAndRotation(leftHandStartPos, leftHandStartRot);
+        rightHand.SetPositionAndRotation(rightHandStartPos, rightHandStartRot);
+
+        leftHand.SetParent(leftHandOriginalParent, true);
+        rightHand.SetParent(rightHandOriginalParent, true);
+
+        gunReturn.ForceReturn();
+    }
+
+    public void DealerActivateGun(bool isLive)
+    {
+        gunFireGate.Fire(isLive);
     }
 
     // =========================================================

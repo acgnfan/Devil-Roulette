@@ -90,7 +90,7 @@ public class GunFireGate : MonoBehaviour
     #endregion
 
     #region Fire Logic
-    void Fire(bool isLive)
+    public void Fire(bool isLive)
     {
         if (isLive)
         {

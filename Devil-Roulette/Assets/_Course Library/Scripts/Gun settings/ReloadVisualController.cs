@@ -23,6 +23,9 @@ public class ReloadVisualController : MonoBehaviour
     [SerializeField] private PlayQuickSound reloadBulletSound;
     [SerializeField] private PlayQuickSound LoadSound;
 
+    [Header("References")]
+    public DealerGunInteractor dealerGun;
+
     List<GameObject> spawnedShells = new List<GameObject>();
     bool waitingForConfirm = false;
 
@@ -75,10 +78,12 @@ public class ReloadVisualController : MonoBehaviour
         // ③ 等待玩家确认
         waitingForConfirm = true;
         // yield return new WaitUntil(PlayerConfirmed);
-        yield return new WaitForSeconds(1.5f);
+        yield return new WaitForSeconds(3.5f);
 
         // ④ 确认后：子弹一起消失
         ClearShells();
+
+        yield return dealerGun.PlayPickupAnimation();
 
         // ⑤ 播放装弹音效（确认完成）
         if (reloadBulletSound != null && LoadSound != null)
@@ -89,7 +94,10 @@ public class ReloadVisualController : MonoBehaviour
                 yield return new WaitForSeconds(0.235f);
             }  
             LoadSound.Play();
+            yield return new WaitForSeconds(1.0f);
         }
+
+        yield return dealerGun.PlayPutDownGun();
     }
 
     bool PlayerConfirmed()

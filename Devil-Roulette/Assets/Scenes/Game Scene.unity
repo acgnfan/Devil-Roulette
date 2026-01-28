@@ -456,6 +456,7 @@ MonoBehaviour:
   bulletSystem: {fileID: 1514931828}
   chamberManager: {fileID: 1847454766}
   dealerAnim: {fileID: 182585455}
+  dealerGun: {fileID: 182585456}
   turnText: {fileID: 0}
   instructionText: {fileID: 0}
   roundText: {fileID: 0}
@@ -1295,6 +1296,7 @@ GameObject:
   m_Component:
   - component: {fileID: 182585454}
   - component: {fileID: 182585455}
+  - component: {fileID: 182585456}
   m_Layer: 0
   m_Name: Dealer
   m_TagString: Untagged
@@ -1349,6 +1351,35 @@ MonoBehaviour:
   leftHandAnimator: {fileID: 194890871}
   rightHandAnimator: {fileID: 1684560987}
   isdead: 0
+--- !u!114 &182585456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 182585453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37df87522a60954409acd93fd0d49f37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DealerGunInteractor
+  dealerRoot: {fileID: 182585454}
+  leftHand: {fileID: 455967160}
+  rightHand: {fileID: 170669357}
+  leftHandAnimator: {fileID: 194890871}
+  rightHandAnimator: {fileID: 1684560987}
+  gun: {fileID: 351625970}
+  gunRb: {fileID: 351625966}
+  gunReturn: {fileID: 351625982}
+  gunFireGate: {fileID: 351625984}
+  leftHandTarget: {fileID: 1164248368}
+  rightHandTarget: {fileID: 1551148438}
+  gunTargetFront: {fileID: 400045794}
+  gunTargetSelf: {fileID: 2100375025}
+  gunTargetPlayer: {fileID: 812970894}
+  handMoveDuration: 0.25
+  gunMoveDuration: 0.4
+  handResetDuration: 0.25
 --- !u!1 &194890868 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 109434732395284509, guid: 65847589f926b734d9eaed6e25f0046b, type: 3}
@@ -4140,6 +4171,7 @@ MonoBehaviour:
   confirmAction: {fileID: 0}
   reloadBulletSound: {fileID: 1551148440}
   LoadSound: {fileID: 1164248366}
+  dealerGun: {fileID: 182585456}
 --- !u!4 &640568824 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5922918821394802619, guid: 1c6b619517692c54eb9031ee65a00d71, type: 3}
@@ -5172,7 +5204,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6598815579406187037, guid: 18ddb545287c546e19cc77dc9fbb2189, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

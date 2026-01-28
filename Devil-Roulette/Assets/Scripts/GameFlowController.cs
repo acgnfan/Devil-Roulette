@@ -15,6 +15,8 @@ public class GameFlowController : MonoBehaviour
     public BulletSystem bulletSystem;
     public ChamberManager chamberManager;
     public DealerAnimationController dealerAnim;
+    public DealerGunInteractor dealerGun;
+
 
 
     [Header("UI REFERENCES")]
@@ -119,7 +121,8 @@ public class GameFlowController : MonoBehaviour
         // Fire the chamber
         bool isLive = chamberManager.FireCurrentChamber();
 
-        bool dealerHit = isLive && !shootSelf && gameState.playerTurn || isLive && shootSelf && !gameState.playerTurn;
+        bool dealerHitbyPlayer = isLive && !shootSelf && gameState.playerTurn;
+        bool dealerHitSelf = isLive && shootSelf && !gameState.playerTurn;
 
         // Apply damage
         if (isLive)
@@ -152,24 +155,42 @@ public class GameFlowController : MonoBehaviour
             GameState.ShootTarget.Self : GameState.ShootTarget.Opponent;
 
         // --- 插入 Dealer 动画 ---
-        if (dealerHit && dealerAnim != null)
+        // ⭐ 特殊情况：Dealer 实弹打自己
+        bool dealerDead = gameState.dealerHP <= 0;
+        if (dealerHitSelf && dealerAnim != null)
         {
-            bool dealerDead = gameState.dealerHP <= 0;
-
-            // 播放击飞
+            // 1️ 手瞬间回位 & 释放枪
+            if (dealerGun != null)
+                dealerGun.EmergencyPutDownGun();
             yield return dealerAnim.PlayHitFlyBack();
 
             yield return new WaitForSeconds(0.5f);
 
-            // 还活着 → 播放抓桌回归
             if (!dealerDead)
-            {
                 yield return dealerAnim.PlayRecoverIfAlive();
-            }
+
             else
-            {
                 dealerAnim.isdead = true;
-            }
+
+        }
+        else if (dealerHitbyPlayer && dealerAnim != null)
+        {
+            // ✅ 原有逻辑（打玩家 / 空枪 / 玩家回合）
+            yield return dealerAnim.PlayHitFlyBack();
+
+            yield return new WaitForSeconds(0.5f);
+
+            if (!dealerDead)
+                yield return dealerAnim.PlayRecoverIfAlive();
+            else
+                dealerAnim.isdead = true;
+        }
+
+        bool shouldPutDownGun =((!shootSelf) || (shootSelf && !isLive)) && !gameState.playerTurn;        
+
+        if (shouldPutDownGun && dealerGun != null)
+        {
+            yield return dealerGun.PlayPutDownGun();
         }
 
         // End turn based on rules
@@ -287,25 +308,93 @@ public class GameFlowController : MonoBehaviour
 
     // ========== DEALER AI ==========
 
+    // Helper method to count remaining bullet types
+    private (int liveCount, int blankCount) GetRemainingBulletStats()
+    {
+        int liveCount = 0;
+        int blankCount = 0;
+
+        foreach (var shell in gameState.chamberShells)
+        {
+            if (!shell.fired)
+            {
+                if (shell.type == GameState.ShellType.Live)
+                    liveCount++;
+                else if (shell.type == GameState.ShellType.Blank)
+                    blankCount++;
+            }
+        }
+
+        return (liveCount, blankCount);
+    }
+
     IEnumerator DealerTakeTurn()
     {
         Debug.Log("\n🤖 DEALER'S TURN...");
 
-        // Show dealer thinking
+        // UI
         if (dealerTurnPanel != null)
             dealerTurnPanel.SetActive(true);
         if (playerTurnPanel != null)
             playerTurnPanel.SetActive(false);
 
-        // Wait for "thinking" time
+        // Dealer 思考
         yield return new WaitForSeconds(dealerThinkTime);
 
-        // For now, dealer always shoots themselves
-        // Later we'll add AI decision making
-        Debug.Log("Dealer chooses to shoot themselves...");
+        // ===============================
+        // 🧠 决策逻辑（你原来的）
+        // ===============================
+        var (liveCount, blankCount) = GetRemainingBulletStats();
+        Debug.Log($"Remaining bullets: {liveCount} LIVE, {blankCount} BLANK");
+
+        bool shootSelf;
+
+        if (blankCount >= liveCount)
+        {
+            shootSelf = true;
+            Debug.Log($"Dealer logic: {blankCount} blanks >= {liveCount} lives → SHOOT SELF");
+        }
+        else
+        {
+            shootSelf = false;
+            Debug.Log($"Dealer logic: {blankCount} blanks < {liveCount} lives → SHOOT PLAYER");
+        }
+
+        if (Random.value < 0.1f)
+        {
+            shootSelf = !shootSelf;
+            Debug.Log($"Dealer goes against logic! Will shoot {(shootSelf ? "self" : "player")}");
+        }
+
+        Debug.Log($"Dealer chooses to shoot {(shootSelf ? "themselves" : "the player")}...");
 
         isProcessingTurn = true;
-        yield return StartCoroutine(ExecuteShot(true)); // Dealer shoots self
+
+        // ===============================
+        // 🎬 Dealer 动画开始
+        // ===============================
+
+        // 1️⃣ 拿枪
+        yield return StartCoroutine(dealerGun.PlayPickupAnimation());
+
+        // 2️⃣ 瞄准目标
+        if (shootSelf)
+            yield return StartCoroutine(dealerGun.AimGunAtSelf());
+        else
+            yield return StartCoroutine(dealerGun.AimGunAtPlayer());
+
+        // 3️⃣ 停顿一拍（心理压迫感，很重要）
+        yield return new WaitForSeconds(1.0f);
+
+        // ===============================
+        // 🔫 真正执行开枪逻辑
+        // ===============================
+        GameState.ShellType shellType = gameState.GetCurrentChamberType();
+        bool isLive = (shellType == GameState.ShellType.Live);
+        dealerGun.DealerActivateGun(isLive);
+        yield return StartCoroutine(ExecuteShot(shootSelf));
+
+        isProcessingTurn = false;
     }
 
     // ========== UI MANAGEMENT ==========
