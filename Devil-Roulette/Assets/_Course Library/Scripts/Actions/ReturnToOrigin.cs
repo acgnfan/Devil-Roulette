@@ -59,6 +59,7 @@ public class ReturnToOrigin : MonoBehaviour
         allowAutoReturn = true;
 
         rb.isKinematic = false;
+        rb.useGravity = true;
         grab.enabled = true;
     }
 
@@ -77,23 +78,35 @@ public class ReturnToOrigin : MonoBehaviour
     /* ================= 核心返回逻辑 ================= */
 
     IEnumerator ReturnRoutine()
+{
+    LockAll(); // 确保 kinematic 已经开启
+
+    Vector3 startPos = transform.position;
+    Quaternion startRot = transform.rotation;
+
+    float t = 0f;
+    while (t < returnDuration)
     {
-        Vector3 startPos = transform.position;
-        Quaternion startRot = transform.rotation;
-
-        float t = 0f;
-        while (t < returnDuration)
-        {
-            float n = t / returnDuration;
-            transform.position = Vector3.Lerp(startPos, originPos, n);
-            transform.rotation = Quaternion.Slerp(startRot, originRot, n);
-            t += Time.deltaTime;
-            yield return null;
-        }
-
-        transform.position = originPos;
-        transform.rotation = originRot;
-
-        UnlockAll();
+        float n = t / returnDuration;
+        transform.position = Vector3.Lerp(startPos, originPos, n);
+        transform.rotation = Quaternion.Slerp(startRot, originRot, n);
+        t += Time.deltaTime;
+        yield return null;
     }
+
+    // 确保最终位置精确
+    transform.position = originPos;
+    transform.rotation = originRot;
+
+    // **保持 kinematic 一段时间，等 physics settle**
+    rb.isKinematic = true;
+    rb.linearVelocity = Vector3.zero;
+    rb.angularVelocity = Vector3.zero;
+
+    yield return new WaitForSeconds(0.05f);
+
+    // 再解锁
+    UnlockAll();
+}
+
 }

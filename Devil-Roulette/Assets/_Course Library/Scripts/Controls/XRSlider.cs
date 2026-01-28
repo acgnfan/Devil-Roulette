@@ -1,139 +1,107 @@
-using System;
+﻿using System;
+using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.XR.Interaction.Toolkit;
 
-namespace UnityEngine.XR.Content.Interaction
+/// <summary>
+/// An interactable that lets the push/pull a handle a long a linear track by a direct interactor
+/// </summary>
+public class XRSlider : UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable
 {
-    /// <summary>
-    /// An interactable that follows the position of the interactor on a single axis
-    /// </summary>
-    public class XRSlider : UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable
+    [Tooltip("The object that's grabbed and manipulated")]
+    public Transform handle = null;
+
+    [Tooltip("The start point of the track")]
+    public Transform start = null;
+
+    [Tooltip("The end point of the track")]
+    public Transform end = null;
+
+    [Tooltip("The initial value of the slider")]
+    [Range(0, 1)] public float defaultValue = 0.0f;
+
+    [Serializable] public class ValueChangeEvent : UnityEvent<float> { }
+
+    // Whenever the slider's value changes
+    public ValueChangeEvent OnValueChange = new ValueChangeEvent();
+
+    public float Value { get; private set; } = 0.0f;
+
+    private UnityEngine.XR.Interaction.Toolkit.Interactors.IXRSelectInteractor selectInteractor = null;
+    private Vector3 selectPosition = Vector3.zero;
+    private float startingValue = 0.0f;
+
+    private void Start()
     {
-        [Serializable]
-        public class ValueChangeEvent : UnityEvent<float> { }
+        Value = defaultValue;
+        ApplyValue(Value);
+    }
 
-        [SerializeField]
-        [Tooltip("The object that is visually grabbed and manipulated")]
-        Transform m_Handle = null;
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+        selectEntered.AddListener(StartGrab);
+        selectExited.AddListener(EndGrab);
+    }
 
-        [SerializeField]
-        [Tooltip("The value of the slider")]
-        [Range(0.0f, 1.0f)]
-        float m_Value = 0.5f;
+    protected override void OnDisable()
+    {
+        base.OnDisable();
+        selectEntered.RemoveListener(StartGrab);
+        selectExited.RemoveListener(EndGrab);
+    }
 
-        [SerializeField]
-        [Tooltip("The offset of the slider at value '1'")]
-        float m_MaxPosition = 0.5f;
+    private void StartGrab(SelectEnterEventArgs eventArgs)
+    {
+        selectInteractor = eventArgs.interactorObject;
+        selectPosition = selectInteractor.transform.position;
+        startingValue = Value;
+    }
 
-        [SerializeField]
-        [Tooltip("The offset of the slider at value '0'")]
-        float m_MinPosition = -0.5f;
+    private void EndGrab(SelectExitEventArgs eventArgs)
+    {
+        selectInteractor = null;
+        selectPosition = Vector3.zero;
+        startingValue = 0.0f;
+    }
 
-        [SerializeField]
-        [Tooltip("Events to trigger when the slider is moved")]
-        ValueChangeEvent m_OnValueChange = new ValueChangeEvent();
+    public override void ProcessInteractable(XRInteractionUpdateOrder.UpdatePhase updatePhase)
+    {
+        base.ProcessInteractable(updatePhase);
 
-        UnityEngine.XR.Interaction.Toolkit.Interactors.IXRSelectInteractor m_Interactor;
-
-        /// <summary>
-        /// The value of the slider
-        /// </summary>
-        public float value
+        if (isSelected)
         {
-            get => m_Value;
-            set
-            {
-                SetValue(value);
-                SetSliderPosition(value);
-            }
-        }
-
-        /// <summary>
-        /// Events to trigger when the slider is moved
-        /// </summary>
-        public ValueChangeEvent onValueChange => m_OnValueChange;
-
-        void Start()
-        {
-            SetValue(m_Value);
-            SetSliderPosition(m_Value);
-        }
-
-        protected override void OnEnable()
-        {
-            base.OnEnable();
-            selectEntered.AddListener(StartGrab);
-            selectExited.AddListener(EndGrab);
-        }
-
-        protected override void OnDisable()
-        {
-            selectEntered.RemoveListener(StartGrab);
-            selectExited.RemoveListener(EndGrab);
-            base.OnDisable();
-        }
-
-        void StartGrab(SelectEnterEventArgs args)
-        {
-            m_Interactor = args.interactorObject;
-            UpdateSliderPosition();
-        }
-
-        void EndGrab(SelectExitEventArgs args)
-        {
-            m_Interactor = null;
-        }
-
-        public override void ProcessInteractable(XRInteractionUpdateOrder.UpdatePhase updatePhase)
-        {
-            base.ProcessInteractable(updatePhase);
-
             if (updatePhase == XRInteractionUpdateOrder.UpdatePhase.Dynamic)
             {
-                if (isSelected)
-                {
-                    UpdateSliderPosition();
-                }
+                Value = FindPullValue();
+                ApplyValue(Value);
             }
         }
+    }
 
-        void UpdateSliderPosition()
-        {
-            // Put anchor position into slider space
-            var localPosition = transform.InverseTransformPoint(m_Interactor.GetAttachTransform(this).position);
-            var sliderValue = Mathf.Clamp01((localPosition.z - m_MinPosition) / (m_MaxPosition - m_MinPosition));
-            SetValue(sliderValue);
-            SetSliderPosition(sliderValue);
-        }
+    private float FindPullValue()
+    {
+        Vector3 pullDirection = selectInteractor.transform.position - selectPosition;
+        Vector3 targetDirection = end.position - start.position;
 
-        void SetSliderPosition(float value)
-        {
-            if (m_Handle == null)
-                return;
+        float maxLength = targetDirection.magnitude;
+        targetDirection.Normalize();
 
-            var handlePos = m_Handle.localPosition;
-            handlePos.z = Mathf.Lerp(m_MinPosition, m_MaxPosition, value);
-            m_Handle.localPosition = handlePos;
-        }
+        float pullValue = Vector3.Dot(pullDirection, targetDirection) / maxLength;
+        pullValue += startingValue;
 
-        void SetValue(float value)
-        {
-            m_Value = value;
-            m_OnValueChange.Invoke(m_Value);
-        }
+        return Mathf.Clamp(pullValue, 0.0f, 1.0f);
+    }
 
-        void OnDrawGizmosSelected()
-        {
-            var sliderMinPoint = transform.TransformPoint(new Vector3(0.0f, 0.0f, m_MinPosition));
-            var sliderMaxPoint = transform.TransformPoint(new Vector3(0.0f, 0.0f, m_MaxPosition));
+    private void ApplyValue(float value)
+    {
+        SetHandlePosition(value);
+        OnValueChange.Invoke(Value);
+    }
 
-            Gizmos.color = Color.green;
-            Gizmos.DrawLine(sliderMinPoint, sliderMaxPoint);
-        }
-
-        void OnValidate()
-        {
-            SetSliderPosition(m_Value);
-        }
+    private void SetHandlePosition(float blend)
+    {
+        Vector3 newPosition = Vector3.Lerp(start.position, end.position, blend);
+        handle.position = newPosition;
     }
 }

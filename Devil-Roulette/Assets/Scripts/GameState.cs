@@ -20,6 +20,8 @@ public class GameState : MonoBehaviour
     // ========== HP SYSTEM ==========
     public int playerHP = 0;
     public int dealerHP = 0;
+
+    public WristHealthDisplay wristUI;
     
     // HP per round configuration
     private Dictionary<int, int> roundHP = new Dictionary<int, int>()

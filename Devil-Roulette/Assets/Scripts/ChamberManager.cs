@@ -3,6 +3,7 @@
 // #############
 
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class ChamberManager : MonoBehaviour
@@ -14,7 +15,7 @@ public class ChamberManager : MonoBehaviour
     [Header("Visual Reload")]
     public ReloadVisualController reloadVisual;
 
-    public void ReloadChamber()
+    public IEnumerator ReloadChamber()
     {
         Debug.Log("\n🔫 RELOADING CHAMBER...");
 
@@ -65,10 +66,10 @@ public class ChamberManager : MonoBehaviour
         if (reloadVisual != null)
         {
             Debug.Log("Playing reload visual...");
-            reloadVisual.PlayReloadVisual(
+            yield return StartCoroutine(reloadVisual.PlayReloadVisual(
                 liveCount,
                 totalBullets - liveCount   // blankCount
-            );
+            ));
         }
 
         Debug.Log($"Loaded {totalBullets} bullets: {liveCount} LIVE, {totalBullets - liveCount} BLANK");

@@ -38,9 +38,9 @@ public class ReloadVisualController : MonoBehaviour
             confirmAction.action.Disable();
     }
 
-    public void PlayReloadVisual(int liveCount, int blankCount)
+    public IEnumerator PlayReloadVisual(int liveCount, int blankCount)
     {
-        StartCoroutine(ReloadSequence(liveCount, blankCount));
+        yield return StartCoroutine(ReloadSequence(liveCount, blankCount));
     }
 
     IEnumerator ReloadSequence(int liveCount, int blankCount)
