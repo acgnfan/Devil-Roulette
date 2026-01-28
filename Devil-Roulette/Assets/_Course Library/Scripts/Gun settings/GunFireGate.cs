@@ -42,7 +42,7 @@ public class GunFireGate : MonoBehaviour
         bool isLive = (shellType == GameState.ShellType.Live);
 
         // 先执行枪的物理 / 表现层开火
-        Fire(isLive, shellType);
+        Fire(isLive);
 
         // 再通知 Game Flow（逻辑层）
         if (gameFlowController != null)
@@ -90,7 +90,7 @@ public class GunFireGate : MonoBehaviour
     #endregion
 
     #region Fire Logic
-    void Fire(bool isLive, GameState.ShellType shellType)
+    void Fire(bool isLive)
     {
         if (isLive)
         {
@@ -100,14 +100,10 @@ public class GunFireGate : MonoBehaviour
             if (muzzleFlashFire != null)
                 muzzleFlashFire.Fire();
         }
-        else if (shellType == GameState.ShellType.Blank)
+        else
         {
             if (blankFireSound != null)
                 blankFireSound.Play();
-        }
-        else
-        {
-            Debug.LogWarning("⚠️ Tried to fire EMPTY chamber");
         }
 
         if (shotgunFireController != null)

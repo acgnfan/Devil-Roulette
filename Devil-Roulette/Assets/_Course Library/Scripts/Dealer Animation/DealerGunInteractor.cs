@@ -3,96 +3,192 @@ using UnityEngine;
 
 public class DealerGunInteractor : MonoBehaviour
 {
-    [Header("References")]
+    [Header("Dealer")]
     public Transform dealerRoot;
+
+    [Header("Hands")]
     public Transform leftHand;
     public Transform rightHand;
     public Animator leftHandAnimator;
     public Animator rightHandAnimator;
+
+    [Header("Gun")]
     public Transform gun;
+    public Rigidbody gunRb;
+    public ReturnToOrigin gunReturn;
 
-    [Header("Gun Targets")]
-    public Transform leftHandTarget;   // 枪栓 attach 点
-    public Transform rightHandTarget;  // 扳机 attach 点
-    public Transform gunTargetFront;   // 枪最终在dealer面前的位置和旋转
+    [Header("Gun Attach Points")]
+    public Transform leftHandTarget;   // 枪栓
+    public Transform rightHandTarget;  // 扳机
 
-    [Header("Settings")]
+    [Header("Gun Aim Targets")]
+    public Transform gunTargetFront;
+    public Transform gunTargetSelf;
+    public Transform gunTargetPlayer;
+
+    [Header("Timings")]
     public float handMoveDuration = 0.25f;
     public float gunMoveDuration = 0.4f;
-    public float handGripDuration = 0.25f;
+    public float handResetDuration = 0.25f;
 
-    /// <summary>
-    /// 播放dealer拿起枪动画
-    /// </summary>
+    // ================= cached =================
+    Vector3 leftHandStartPos;
+    Quaternion leftHandStartRot;
+    Vector3 rightHandStartPos;
+    Quaternion rightHandStartRot;
+    Transform leftHandOriginalParent;
+    Transform rightHandOriginalParent;
+
+    void Awake()
+    {
+        leftHandStartPos = leftHand.position;
+        leftHandStartRot = leftHand.rotation;
+
+        rightHandStartPos = rightHand.position;
+        rightHandStartRot = rightHand.rotation;
+
+        leftHandOriginalParent = leftHand.parent;
+        rightHandOriginalParent = rightHand.parent;
+    }
+
+    // =========================================================
+    // 1️⃣ Dealer 拿起枪
+    // =========================================================
     public IEnumerator PlayPickupAnimation()
     {
-        // --------------------------
-        // 1️⃣ 左右手移动到枪上
-        // --------------------------
-        Vector3 leftFrom = leftHand.position;
-        Quaternion leftRotFrom = leftHand.rotation;
+        // 锁物理
+        gunReturn.LockAll();
 
-        Vector3 rightFrom = rightHand.position;
-        Quaternion rightRotFrom = rightHand.rotation;
+        // 手移动到枪
+        yield return MoveHandsToTargets(leftHandTarget, rightHandTarget);
 
-        Vector3 leftTo = leftHandTarget.position;
-        Quaternion leftRotTo = leftHandTarget.rotation;
+        // 手挂到枪上
+        leftHand.SetParent(gun, true);
+        rightHand.SetParent(gun, true);
 
-        Vector3 rightTo = rightHandTarget.position;
-        Quaternion rightRotTo = rightHandTarget.rotation;
+        // 抓握
+        SetHandGrip(1f);
+
+        // 枪移动到 dealer 面前
+        yield return MoveGunTo(gunTargetFront);
+    }
+
+    // =========================================================
+    // 2️⃣ 枪指向自己
+    // =========================================================
+    public IEnumerator AimGunAtSelf()
+    {
+        yield return MoveGunTo(gunTargetSelf);
+    }
+
+    // =========================================================
+    // 3️⃣ 枪指向玩家
+    // =========================================================
+    public IEnumerator AimGunAtPlayer()
+    {
+        yield return MoveGunTo(gunTargetPlayer);
+    }
+
+    // =========================================================
+    // 4️⃣ 放下枪（重点）
+    // =========================================================
+    public IEnumerator PlayPutDownGun()
+    {
+        // 1️⃣ 松手
+        SetHandGrip(0f);
+        yield return new WaitForSeconds(0.1f);
+
+        // 2️⃣ 手解除枪的 parent
+        leftHand.SetParent(null, true);
+        rightHand.SetParent(null, true);
+
+        // 3️⃣ 手回到初始位置
+        yield return MoveHandsBackToStart();
+
+        // 4️⃣ 手重新挂回 dealer 本体
+        leftHand.SetParent(leftHandOriginalParent, true);
+        rightHand.SetParent(rightHandOriginalParent, true);
+
+        // 5️⃣ 枪回到桌面
+        gunReturn.ForceReturn();
+    }
+
+    // =========================================================
+    // =================== INTERNAL ============================
+    // =========================================================
+
+    IEnumerator MoveHandsToTargets(Transform leftTarget, Transform rightTarget)
+    {
+        Vector3 lFromPos = leftHand.position;
+        Quaternion lFromRot = leftHand.rotation;
+        Vector3 rFromPos = rightHand.position;
+        Quaternion rFromRot = rightHand.rotation;
 
         float t = 0f;
         while (t < 1f)
         {
             t += Time.deltaTime / handMoveDuration;
-            leftHand.position = Vector3.Lerp(leftFrom, leftTo, t);
-            leftHand.rotation = Quaternion.Slerp(leftRotFrom, leftRotTo, t);
 
-            rightHand.position = Vector3.Lerp(rightFrom, rightTo, t);
-            rightHand.rotation = Quaternion.Slerp(rightRotFrom, rightRotTo, t);
+            leftHand.position = Vector3.Lerp(lFromPos, leftTarget.position, t);
+            leftHand.rotation = Quaternion.Slerp(lFromRot, leftTarget.rotation, t);
+
+            rightHand.position = Vector3.Lerp(rFromPos, rightTarget.position, t);
+            rightHand.rotation = Quaternion.Slerp(rFromRot, rightTarget.rotation, t);
+
             yield return null;
         }
 
-        leftHand.position = leftTo;
-        leftHand.rotation = leftRotTo;
+        leftHand.SetPositionAndRotation(leftTarget.position, leftTarget.rotation);
+        rightHand.SetPositionAndRotation(rightTarget.position, rightTarget.rotation);
+    }
 
-        rightHand.position = rightTo;
-        rightHand.rotation = rightRotTo;
+    IEnumerator MoveHandsBackToStart()
+    {
+        Vector3 lFromPos = leftHand.position;
+        Quaternion lFromRot = leftHand.rotation;
+        Vector3 rFromPos = rightHand.position;
+        Quaternion rFromRot = rightHand.rotation;
 
-        // --------------------------
-        // 2️⃣ 临时把手挂到枪上
-        // --------------------------
-        leftHand.SetParent(gun, true);  // true = 保持世界位置
-        rightHand.SetParent(gun, true);
+        float t = 0f;
+        while (t < 1f)
+        {
+            t += Time.deltaTime / handResetDuration;
 
-        // --------------------------
-        // 3️⃣ 同时抓握动画
-        // --------------------------
-        leftHandAnimator.SetFloat("Grip", 1f);
-        rightHandAnimator.SetFloat("Grip", 1f);
+            leftHand.position = Vector3.Lerp(lFromPos, leftHandStartPos, t);
+            leftHand.rotation = Quaternion.Slerp(lFromRot, leftHandStartRot, t);
 
-        // --------------------------
-        // 4️⃣ 枪移动到dealer面前
-        // --------------------------
-        Vector3 gunFrom = gun.position;
-        Quaternion gunFromRot = gun.rotation;
-        Vector3 gunTo = gunTargetFront.position;
-        Quaternion gunToRot = gunTargetFront.rotation;
+            rightHand.position = Vector3.Lerp(rFromPos, rightHandStartPos, t);
+            rightHand.rotation = Quaternion.Slerp(rFromRot, rightHandStartRot, t);
 
-        t = 0f;
+            yield return null;
+        }
+
+        leftHand.SetPositionAndRotation(leftHandStartPos, leftHandStartRot);
+        rightHand.SetPositionAndRotation(rightHandStartPos, rightHandStartRot);
+    }
+
+    IEnumerator MoveGunTo(Transform target)
+    {
+        Vector3 fromPos = gun.position;
+        Quaternion fromRot = gun.rotation;
+
+        float t = 0f;
         while (t < 1f)
         {
             t += Time.deltaTime / gunMoveDuration;
-            gun.position = Vector3.Lerp(gunFrom, gunTo, t);
-            gun.rotation = Quaternion.Slerp(gunFromRot, gunToRot, t);
+            gun.position = Vector3.Lerp(fromPos, target.position, t);
+            gun.rotation = Quaternion.Slerp(fromRot, target.rotation, t);
             yield return null;
         }
 
-        gun.position = gunTo;
-        gun.rotation = gunToRot;
+        gun.SetPositionAndRotation(target.position, target.rotation);
+    }
 
-        // --------------------------
-        // Pickup动画完成，手可保持挂在枪上
-        // --------------------------
+    void SetHandGrip(float value)
+    {
+        if (leftHandAnimator)
+            leftHandAnimator.SetFloat("Grip", value);
+        if (rightHandAnimator)
+            rightHandAnimator.SetFloat("Grip", value);
     }
 }

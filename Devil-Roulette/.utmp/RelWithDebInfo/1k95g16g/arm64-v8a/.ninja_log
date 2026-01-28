@@ -1,10 +1,19 @@
 # ninja log v5
 33	919	7912159756632397	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	8550bd457b32e880
 20	941	7912159756881091	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	9b2cfdc2c5ee76c4
-41	965	7912159757131346	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	7a6c1f9b69eb761d
-14	984	7912159757318320	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	2cdf62013b8f779f
 9	1006	7912159757535204	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	fea5af3266d35779
+41	965	7912159757131346	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	7a6c1f9b69eb761d
+1255	1338	7912159760849274	C:/Users/13524/Documents/GitHub/Devil-Roulette/Devil-Roulette/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/1k95g16g/obj/arm64-v8a/libgame.so	3bbd88d2437fe7a9
 51	1053	7912159757976022	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	ef1250e22febbd17
+14	984	7912159757318320	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	2cdf62013b8f779f
 26	1152	7912159758987174	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	ec9d63f722c86b43
 0	1254	7912159759924360	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	13fc4d0fc719790
-1255	1338	7912159760849274	C:/Users/13524/Documents/GitHub/Devil-Roulette/Devil-Roulette/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/1k95g16g/obj/arm64-v8a/libgame.so	3bbd88d2437fe7a9
+52	1012	7913088589257085	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	8550bd457b32e880
+21	1028	7913088589388655	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	9b2cfdc2c5ee76c4
+33	1044	7913088589545466	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	2cdf62013b8f779f
+60	1046	7913088589575748	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	7a6c1f9b69eb761d
+38	1093	7913088590064758	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	fea5af3266d35779
+68	1159	7913088590713640	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	ef1250e22febbd17
+45	1259	7913088591687448	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	ec9d63f722c86b43
+13	1360	7913088592601172	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	13fc4d0fc719790
+1360	1471	7913088593805482	C:/Users/13524/Documents/GitHub/Devil-Roulette/Devil-Roulette/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/RelWithDebInfo/1k95g16g/obj/arm64-v8a/libgame.so	3bbd88d2437fe7a9
