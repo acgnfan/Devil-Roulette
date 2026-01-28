@@ -379,6 +379,52 @@ public class GameFlowController : MonoBehaviour
     
     // ========== DEALER AI ==========
     
+    // IEnumerator DealerTakeTurn()
+    // {
+    //     Debug.Log("\n🤖 DEALER'S TURN...");
+        
+    //     // Show dealer thinking
+    //     if (dealerTurnPanel != null)
+    //         dealerTurnPanel.SetActive(true);
+    //     if (playerTurnPanel != null)
+    //         playerTurnPanel.SetActive(false);
+        
+    //     // Wait for "thinking" time
+    //     yield return new WaitForSeconds(dealerThinkTime);
+        
+    //     // For now, dealer always shoots themselves
+    //     // Later we'll add AI decision making
+    //     Debug.Log("Dealer chooses to shoot themselves...");
+        
+    //     isProcessingTurn = true;
+    //     ExecuteShot(true); // Dealer shoots self
+    // }
+
+    // 
+    // 
+    // 
+    // ========== DEALER AI ==========
+
+    // Helper method to count remaining bullet types
+    private (int liveCount, int blankCount) GetRemainingBulletStats()
+    {
+        int liveCount = 0;
+        int blankCount = 0;
+        
+        foreach (var shell in gameState.chamberShells)
+        {
+            if (!shell.fired)
+            {
+                if (shell.type == GameState.ShellType.Live)
+                    liveCount++;
+                else if (shell.type == GameState.ShellType.Blank)
+                    blankCount++;
+            }
+        }
+        
+        return (liveCount, blankCount);
+    }
+
     IEnumerator DealerTakeTurn()
     {
         Debug.Log("\n🤖 DEALER'S TURN...");
@@ -392,12 +438,36 @@ public class GameFlowController : MonoBehaviour
         // Wait for "thinking" time
         yield return new WaitForSeconds(dealerThinkTime);
         
-        // For now, dealer always shoots themselves
-        // Later we'll add AI decision making
-        Debug.Log("Dealer chooses to shoot themselves...");
+        // Calculate bullet statistics for decision making
+        var (liveCount, blankCount) = GetRemainingBulletStats();
+        Debug.Log($"Remaining bullets: {liveCount} LIVE, {blankCount} BLANK");
+        
+        bool shootSelf;
+        
+        if (blankCount >= liveCount)
+        {
+            // If blank bullets >= live bullets, shoot self (safer)
+            shootSelf = true;
+            Debug.Log($"Dealer logic: {blankCount} blanks >= {liveCount} lives → SHOOT SELF");
+        }
+        else
+        {
+            // If more live bullets than blanks, shoot opponent (riskier but could kill)
+            shootSelf = false;
+            Debug.Log($"Dealer logic: {blankCount} blanks < {liveCount} lives → SHOOT PLAYER");
+        }
+        
+        // Add some randomness to make it less predictable (optional)
+        if (Random.value < 0.1f) // 10% chance to go against the logic
+        {
+            shootSelf = !shootSelf;
+            Debug.Log($"Dealer goes against logic! Will shoot {(shootSelf ? "self" : "player")}");
+        }
+        
+        Debug.Log($"Dealer chooses to shoot {(shootSelf ? "themselves" : "the player")}...");
         
         isProcessingTurn = true;
-        ExecuteShot(true); // Dealer shoots self
+        ExecuteShot(shootSelf); // Dealer makes intelligent decision
     }
     
     // ========== TOOL SYSTEM ==========
