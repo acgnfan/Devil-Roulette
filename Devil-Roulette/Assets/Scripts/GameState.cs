@@ -6,7 +6,9 @@
 // ################### 
 
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
 public class GameState : MonoBehaviour
 {
@@ -20,8 +22,10 @@ public class GameState : MonoBehaviour
     // ========== HP SYSTEM ==========
     public int playerHP = 0;
     public int dealerHP = 0;
+    public float originalAlpha = 0.7f;
 
     public WristHealthDisplay wristUI;
+    public CanvasGroup fadeCanvasGroup;
     
     // HP per round configuration
     private Dictionary<int, int> roundHP = new Dictionary<int, int>()
@@ -166,6 +170,17 @@ public class GameState : MonoBehaviour
         else
             Debug.Log("😞 DEALER WINS THE GAME!");
         Debug.Log("=================================");
+
+
+        SceneManager.LoadScene("Create-with-VR-Starter-Scene");
+        float counter = 0f;
+        while (counter < 2f)
+        {
+            counter += Time.deltaTime * 2f;
+            fadeCanvasGroup.alpha = Mathf.Lerp(1f, originalAlpha, counter / 2f);
+        }
+        fadeCanvasGroup.alpha = originalAlpha;
+
     }
     
     // Check if we should start a new round

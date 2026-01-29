@@ -7,6 +7,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class GameFlowController : MonoBehaviour
 {
@@ -17,6 +18,7 @@ public class GameFlowController : MonoBehaviour
     public DealerAnimationController dealerAnim;
     public DealerGunInteractor dealerGun;
     public CanvasGroup fadeCanvasGroup;
+
 
 
 
@@ -81,6 +83,7 @@ public class GameFlowController : MonoBehaviour
 
         // Initial reload
         yield return StartCoroutine(chamberManager.ReloadChamber());
+
 
         // Update UI
         UpdateAllUI();
@@ -192,6 +195,10 @@ public class GameFlowController : MonoBehaviour
             // 玩家受到攻击
             fadeCanvasGroup.alpha = 1f;
             yield return new WaitForSeconds(2f);
+            if (gameState.playerHP <= 0)
+            {
+                SceneManager.LoadScene("Create-with-VR-Starter-Scene");
+            }
             float counter = 0f;
             while (counter < 2f)
             {
@@ -315,10 +322,12 @@ public class GameFlowController : MonoBehaviour
         if (gameState.ShouldStartNewRound())
         {
             yield return StartCoroutine(AutoNextRound());
+            
         }
         else if (gameState.gameOver)
         {
             Debug.Log("\n🎮 GAME OVER!");
+            
             UpdateAllUI();
         }
     }

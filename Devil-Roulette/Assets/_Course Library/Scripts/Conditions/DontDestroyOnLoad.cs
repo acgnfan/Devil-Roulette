@@ -29,6 +29,12 @@ public class SceneFader : MonoBehaviour
     private void Start()
     {
         // 游戏刚开始时，执行一次淡入（从黑变亮）
+        float counter = 0f;
+        while (counter < 2f)
+        {
+            counter += Time.deltaTime * 2f;
+            fadeCanvasGroup.alpha = Mathf.Lerp(1f, originalAlpha, counter / 2f);
+        }
         fadeCanvasGroup.alpha = originalAlpha;
     }
 
