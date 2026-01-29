@@ -11,13 +11,14 @@ public class SceneFader : MonoBehaviour
     public CanvasGroup fadeCanvasGroup;
     public float fadeDuration = 1.0f; // 淡入淡出耗时（秒）
 
+    public float originalAlpha = 181f / 255f; // 初始透明度（0~1）
+
     private void Awake()
     {
         // 单例模式：确保全局只有一个 Fader
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject); // 切换场景时不销毁此物体
         }
         else
         {
@@ -28,7 +29,7 @@ public class SceneFader : MonoBehaviour
     private void Start()
     {
         // 游戏刚开始时，执行一次淡入（从黑变亮）
-        StartCoroutine(FadeIn());
+        fadeCanvasGroup.alpha = originalAlpha;
     }
 
     // 供外部按钮调用的公共方法
@@ -69,10 +70,16 @@ public class SceneFader : MonoBehaviour
         while (timer < fadeDuration)
         {
             timer += Time.deltaTime;
-            fadeCanvasGroup.alpha = timer / fadeDuration;
+            fadeCanvasGroup.alpha = Mathf.Lerp(originalAlpha, 1f, timer / fadeDuration);
             yield return null;
         }
         fadeCanvasGroup.alpha = 1f;
+    }
+
+    public IEnumerator TurnBlack() // 变黑
+    {
+        fadeCanvasGroup.alpha = 1f;
+        yield return new WaitForSeconds(2f);
     }
 
     private IEnumerator FadeIn() // 变透明
@@ -81,9 +88,10 @@ public class SceneFader : MonoBehaviour
         while (timer < fadeDuration)
         {
             timer += Time.deltaTime;
-            fadeCanvasGroup.alpha = 1f - (timer / fadeDuration);
+            fadeCanvasGroup.alpha = Mathf.Lerp(1f, originalAlpha, timer / fadeDuration);
             yield return null;
         }
-        fadeCanvasGroup.alpha = 0f;
+        fadeCanvasGroup.alpha = originalAlpha;
     }
+
 }

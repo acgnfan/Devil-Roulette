@@ -3364,6 +3364,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SceneFader
   fadeCanvasGroup: {fileID: 1566996850}
   fadeDuration: 1
+  originalAlpha: 0.70980394
 --- !u!225 &1566996850
 CanvasGroup:
   m_ObjectHideFlags: 0

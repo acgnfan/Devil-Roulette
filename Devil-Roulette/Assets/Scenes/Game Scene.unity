@@ -226,7 +226,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.07816702, g: 0, b: 0, a: 0.70980394}
+  m_Color: {r: 0.07816702, g: 0, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -457,6 +457,7 @@ MonoBehaviour:
   chamberManager: {fileID: 1847454766}
   dealerAnim: {fileID: 182585455}
   dealerGun: {fileID: 182585456}
+  fadeCanvasGroup: {fileID: 587805336}
   turnText: {fileID: 0}
   instructionText: {fileID: 0}
   roundText: {fileID: 0}
@@ -468,6 +469,7 @@ MonoBehaviour:
   autoStart: 1
   dealerThinkTime: 1.5
   roundTransitionTime: 2
+  originalAlpha: 0.7
   debugMode: 0
   isProcessingTurn: 0
 --- !u!4 &71896808
@@ -3936,6 +3938,7 @@ GameObject:
   - component: {fileID: 587805338}
   - component: {fileID: 587805337}
   - component: {fileID: 587805336}
+  - component: {fileID: 587805341}
   m_Layer: 5
   m_Name: Color monitor
   m_TagString: Untagged
@@ -3951,7 +3954,7 @@ CanvasGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 587805335}
   m_Enabled: 1
-  m_Alpha: 1
+  m_Alpha: 0.7
   m_Interactable: 0
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
@@ -4038,6 +4041,21 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &587805341
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 587805335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1d440d5f4e49f04d81c98271eb18959, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneFader
+  fadeCanvasGroup: {fileID: 587805336}
+  fadeDuration: 1
+  originalAlpha: 0.70980394
 --- !u!1001 &595251952
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5204,7 +5222,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6598815579406187037, guid: 18ddb545287c546e19cc77dc9fbb2189, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

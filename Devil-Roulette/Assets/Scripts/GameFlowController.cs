@@ -16,6 +16,7 @@ public class GameFlowController : MonoBehaviour
     public ChamberManager chamberManager;
     public DealerAnimationController dealerAnim;
     public DealerGunInteractor dealerGun;
+    public CanvasGroup fadeCanvasGroup;
 
 
 
@@ -33,6 +34,7 @@ public class GameFlowController : MonoBehaviour
     public bool autoStart = true;
     public float dealerThinkTime = 1.5f;
     public float roundTransitionTime = 2f;
+    public float originalAlpha = 0.7f; // 初始透明度（0~1）
 
     [Header("DEBUG")]
     public bool debugMode = false;
@@ -185,6 +187,22 @@ public class GameFlowController : MonoBehaviour
             else
                 dealerAnim.isdead = true;
         }
+
+        else if ((gameState.playerTurn && shootSelf && isLive) || (!gameState.playerTurn && !shootSelf && isLive))
+        {
+            // 玩家受到攻击
+            fadeCanvasGroup.alpha = 1f;
+            yield return new WaitForSeconds(2f);
+            float counter = 0f;
+            while (counter < 2f)
+            {
+                counter += Time.deltaTime * 2f;
+                fadeCanvasGroup.alpha = Mathf.Lerp(1f, originalAlpha, counter / 2f);
+                yield return null;
+            }
+            fadeCanvasGroup.alpha = originalAlpha;
+        }
+
 
         bool shouldPutDownGun =((!shootSelf) || (shootSelf && !isLive)) && !gameState.playerTurn;        
 
