@@ -25,6 +25,8 @@ public class ReloadVisualController : MonoBehaviour
 
     [Header("References")]
     public DealerGunInteractor dealerGun;
+    public DealerDialogueController dealerDialogue;
+
 
     List<GameObject> spawnedShells = new List<GameObject>();
     bool waitingForConfirm = false;
@@ -41,12 +43,12 @@ public class ReloadVisualController : MonoBehaviour
             confirmAction.action.Disable();
     }
 
-    public IEnumerator PlayReloadVisual(int liveCount, int blankCount)
+    public IEnumerator PlayReloadVisual(int liveCount, int blankCount, int reloadTime)
     {
-        yield return StartCoroutine(ReloadSequence(liveCount, blankCount));
+        yield return StartCoroutine(ReloadSequence(liveCount, blankCount, reloadTime));
     }
 
-    IEnumerator ReloadSequence(int liveCount, int blankCount)
+    IEnumerator ReloadSequence(int liveCount, int blankCount, int reloadTime)
     {
         ClearShells();
         waitingForConfirm = false;
@@ -78,12 +80,21 @@ public class ReloadVisualController : MonoBehaviour
         // ③ 等待玩家确认
         waitingForConfirm = true;
         // yield return new WaitUntil(PlayerConfirmed);
-        yield return new WaitForSeconds(3.5f);
+        yield return dealerDialogue.Say($"{liveCount} live shell, {blankCount} blanks.");
+        yield return new WaitForSeconds(1.5f);
 
         // ④ 确认后：子弹一起消失
         ClearShells();
 
         yield return dealerGun.PlayPickupAnimation();
+        if (reloadTime == 1)
+        {
+            yield return dealerDialogue.Say("I insert the shells in an unknown order.");
+        }
+        else if (reloadTime == 2)
+        {
+            yield return dealerDialogue.Say("They enter the chamber in a hidden sequence.");
+        }
 
         // ⑤ 播放装弹音效（确认完成）
         if (reloadBulletSound != null && LoadSound != null)

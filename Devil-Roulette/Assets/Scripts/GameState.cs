@@ -25,7 +25,6 @@ public class GameState : MonoBehaviour
     public float originalAlpha = 0.7f;
 
     public WristHealthDisplay wristUI;
-    public CanvasGroup fadeCanvasGroup;
     
     // HP per round configuration
     private Dictionary<int, int> roundHP = new Dictionary<int, int>()
@@ -171,16 +170,7 @@ public class GameState : MonoBehaviour
             Debug.Log("😞 DEALER WINS THE GAME!");
         Debug.Log("=================================");
 
-
-        SceneManager.LoadScene("Create-with-VR-Starter-Scene");
-        float counter = 0f;
-        while (counter < 2f)
-        {
-            counter += Time.deltaTime * 2f;
-            fadeCanvasGroup.alpha = Mathf.Lerp(1f, originalAlpha, counter / 2f);
-        }
-        fadeCanvasGroup.alpha = originalAlpha;
-
+        SceneFader.Instance.LoadLevel("Create-with-VR-Starter-Scene");
     }
     
     // Check if we should start a new round

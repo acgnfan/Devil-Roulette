@@ -14,6 +14,7 @@ public class ChamberManager : MonoBehaviour
 
     [Header("Visual Reload")]
     public ReloadVisualController reloadVisual;
+    int reloadTimes = 1;
 
     public IEnumerator ReloadChamber()
     {
@@ -66,12 +67,15 @@ public class ChamberManager : MonoBehaviour
         if (reloadVisual != null)
         {
             Debug.Log("Playing reload visual...");
+            yield return new WaitForSeconds(1.0f);
             yield return StartCoroutine(reloadVisual.PlayReloadVisual(
                 liveCount,
-                totalBullets - liveCount   // blankCount
+                totalBullets - liveCount,  // blankCount
+                reloadTimes
             ));
         }
 
+        reloadTimes++;
         Debug.Log($"Loaded {totalBullets} bullets: {liveCount} LIVE, {totalBullets - liveCount} BLANK");
         DebugChamberState();
     }

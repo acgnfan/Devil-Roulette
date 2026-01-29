@@ -17,10 +17,6 @@ public class GameFlowController : MonoBehaviour
     public ChamberManager chamberManager;
     public DealerAnimationController dealerAnim;
     public DealerGunInteractor dealerGun;
-    public CanvasGroup fadeCanvasGroup;
-
-
-
 
     [Header("UI REFERENCES")]
     public Text turnText;
@@ -44,14 +40,15 @@ public class GameFlowController : MonoBehaviour
 
     void Start()
     {
-        InitializeGame();
+        StartCoroutine(InitializeGame());
     }
 
-    void InitializeGame()
+    IEnumerator InitializeGame()
     {
         // Start the game
         if (autoStart)
         {
+            yield return new WaitForSeconds(3.5f);
             StartCoroutine(StartNewRound());
         }
     }
@@ -193,22 +190,14 @@ public class GameFlowController : MonoBehaviour
         else if ((gameState.playerTurn && shootSelf && isLive) || (!gameState.playerTurn && !shootSelf && isLive))
         {
             // 玩家受到攻击
-            fadeCanvasGroup.alpha = 1f;
-            yield return new WaitForSeconds(2f);
-            if (gameState.playerHP <= 0)
+            StartCoroutine(SceneFader.Instance.TurnBlack());
+            BGMManager.Instance.OnPlayerHit();
+            yield return new WaitForSeconds(0.5f);
+            if (gameState.playerHP > 0)
             {
-                SceneManager.LoadScene("Create-with-VR-Starter-Scene");
+                StartCoroutine(SceneFader.Instance.FadeIn(2.0f));
             }
-            float counter = 0f;
-            while (counter < 2f)
-            {
-                counter += Time.deltaTime * 2f;
-                fadeCanvasGroup.alpha = Mathf.Lerp(1f, originalAlpha, counter / 2f);
-                yield return null;
-            }
-            fadeCanvasGroup.alpha = originalAlpha;
         }
-
 
         bool shouldPutDownGun =((!shootSelf) || (shootSelf && !isLive)) && !gameState.playerTurn;        
 
