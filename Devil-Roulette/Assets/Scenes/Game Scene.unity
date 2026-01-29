@@ -2353,6 +2353,7 @@ MonoBehaviour:
   selfFireDotThreshold: 0.9
   liveFireSound: {fileID: 351625972}
   blankFireSound: {fileID: 351625989}
+  liveHitSound: {fileID: 351625994}
   shotgunFireController: {fileID: 351625983}
   muzzleFlashFire: {fileID: 1749908643}
   gameState: {fileID: 71896806}
@@ -2403,6 +2404,21 @@ MonoBehaviour:
   gameFlowController: {fileID: 71896807}
   returnToOrigin: {fileID: 351625982}
   disableDuringDealerTurn: 1
+--- !u!114 &351625994
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 351625964}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0755a2ba17a31d643b4a27e3034d8a79, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayQuickSound
+  sound: {fileID: 8300000, guid: 599dd02ac47e3bf42a6372bb788f2616, type: 3}
+  volume: 1
+  randomPitchVariance: 0
 --- !u!1 &359410058
 GameObject:
   m_ObjectHideFlags: 0
@@ -8044,6 +8060,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5855586643228379229, guid: c9841888fa5041d499ada59f73087c6a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 351625993}
+    - targetCorrespondingSourceObject: {fileID: 5855586643228379229, guid: c9841888fa5041d499ada59f73087c6a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 351625994}
   m_SourcePrefab: {fileID: 100100000, guid: c9841888fa5041d499ada59f73087c6a, type: 3}
 --- !u!1 &1684560984 stripped
 GameObject:

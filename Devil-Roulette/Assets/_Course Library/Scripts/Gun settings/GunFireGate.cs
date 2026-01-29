@@ -17,6 +17,7 @@ public class GunFireGate : MonoBehaviour
     [Header("Fire Components")]
     public PlayQuickSound liveFireSound;          
     public PlayQuickSound blankFireSound; 
+    public PlayQuickSound liveHitSound;
     public ShotgunFireController shotgunFireController;
     public MuzzleFlashLight muzzleFlashFire;
 
@@ -42,7 +43,7 @@ public class GunFireGate : MonoBehaviour
         bool isLive = (shellType == GameState.ShellType.Live);
 
         // 先执行枪的物理 / 表现层开火
-        Fire(isLive);
+        Fire(isLive, aimingSelf);
 
         // 再通知 Game Flow（逻辑层）
         if (gameFlowController != null)
@@ -90,15 +91,20 @@ public class GunFireGate : MonoBehaviour
     #endregion
 
     #region Fire Logic
-    public void Fire(bool isLive)
+    public void Fire(bool isLive, bool aimingSelf)
     {
-        if (isLive)
+        if (isLive && !aimingSelf)
         {
             if (liveFireSound != null)
                 liveFireSound.Play();
 
             if (muzzleFlashFire != null)
                 muzzleFlashFire.Fire();
+        }
+        else if (isLive && aimingSelf)
+        {
+            if (liveHitSound != null)
+                liveHitSound.Play();
         }
         else
         {

@@ -187,7 +187,6 @@ public class GameFlowController : MonoBehaviour
             else
                 dealerAnim.isdead = true;
         }
-
         else if ((gameState.playerTurn && shootSelf && isLive) || (!gameState.playerTurn && !shootSelf && isLive))
         {
             // 玩家受到攻击
@@ -409,7 +408,7 @@ public class GameFlowController : MonoBehaviour
         // ===============================
         GameState.ShellType shellType = gameState.GetCurrentChamberType();
         bool isLive = (shellType == GameState.ShellType.Live);
-        dealerGun.DealerActivateGun(isLive);
+        dealerGun.DealerActivateGun(isLive, !shootSelf);
         yield return StartCoroutine(ExecuteShot(shootSelf));
 
         isProcessingTurn = false;

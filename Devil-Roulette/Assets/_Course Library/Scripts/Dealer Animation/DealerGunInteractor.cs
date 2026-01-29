@@ -132,9 +132,9 @@ public class DealerGunInteractor : MonoBehaviour
         gunReturn.ForceReturn();
     }
 
-    public void DealerActivateGun(bool isLive)
+    public void DealerActivateGun(bool isLive, bool aimingPlayer)
     {
-        gunFireGate.Fire(isLive);
+        gunFireGate.Fire(isLive, aimingPlayer);
     }
 
     // =========================================================
