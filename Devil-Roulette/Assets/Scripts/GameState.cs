@@ -141,7 +141,7 @@ public class GameState : MonoBehaviour
         Debug.Log($"Round {currentRound} complete. Player wins: {playerWins}/{totalRoundsPlayed}");
         
         // Move to next round or end game
-        if (currentRound < totalRounds)
+        if (currentRound < totalRounds && playerWonLastRound)
         {
             currentRound++;
             Debug.Log($"Moving to Round {currentRound}...");
@@ -159,8 +159,7 @@ public class GameState : MonoBehaviour
         gameActive = false;
         
         Debug.Log("\n=================================");
-        Debug.Log("🎮 GAME OVER - ALL 3 ROUNDS COMPLETE!");
-        Debug.Log($"Player won {playerWins} out of {totalRounds} rounds");
+        Debug.Log("🎮 GAME OVER!");
         
         if (playerWins >= 2)
             Debug.Log("🏆 PLAYER WINS THE GAME!");
