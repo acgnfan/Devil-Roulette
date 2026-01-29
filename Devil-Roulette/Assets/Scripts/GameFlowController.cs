@@ -181,12 +181,16 @@ public class GameFlowController : MonoBehaviour
             // ✅ 原有逻辑（打玩家 / 空枪 / 玩家回合）
             yield return dealerAnim.PlayHitFlyBack();
 
-            yield return new WaitForSeconds(0.5f);
-
             if (!dealerDead)
+            {
+                yield return new WaitForSeconds(0.5f);
                 yield return dealerAnim.PlayRecoverIfAlive();
+            }
             else
+            {
                 dealerAnim.isdead = true;
+                yield return new WaitForSeconds(4.5f);
+            }        
         }
         else if ((gameState.playerTurn && shootSelf && isLive) || (!gameState.playerTurn && !shootSelf && isLive))
         {

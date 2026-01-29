@@ -41,6 +41,7 @@ public class SceneFaderGame : MonoBehaviour
 
     public IEnumerator FadeOut()
     {
+        yield return new WaitForSeconds(15.0f);
         float timer = 0f;
         while (timer < fadeDuration)
         {

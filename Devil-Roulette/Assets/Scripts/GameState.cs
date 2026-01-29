@@ -26,6 +26,7 @@ public class GameState : MonoBehaviour
 
     public WristHealthDisplay wristUI;
     public SceneFaderGame sceneFader;
+    public WinUIController winUI;
     
     // HP per round configuration
     private Dictionary<int, int> roundHP = new Dictionary<int, int>()
@@ -119,14 +120,14 @@ public class GameState : MonoBehaviour
         {
             Debug.Log($"💀 PLAYER DIED! Dealer wins Round {currentRound}.");
             gameActive = false;
-            RecordRoundResult(false); // Player lost this round
+            StartCoroutine(RecordRoundResult(false)); // Player lost this round
             return true;
         }
         else if (dealerHP <= 0)
         {
             Debug.Log($"🎉 DEALER DIED! Player wins Round {currentRound}!");
             gameActive = false;
-            RecordRoundResult(true); // Player won this round
+            StartCoroutine(RecordRoundResult(true)); // Player won this round
             return true;
         }
         
@@ -136,19 +137,23 @@ public class GameState : MonoBehaviour
     // ========== ROUND PROGRESSION ==========
     
     // Record round result and check if game is over
-    public void RecordRoundResult(bool playerWon)
+    public IEnumerator RecordRoundResult(bool playerWon)
     {
         totalRoundsPlayed++;
         if (playerWon) playerWins++;
         playerWonLastRound = playerWon;
+
+        yield return new WaitForSeconds(1.0f);
         
         Debug.Log($"Round {currentRound} complete. Player wins: {playerWins}/{totalRoundsPlayed}");
+        yield return winUI.Say("Player wins this round!");
         
         // Move to next round or end game
         if (currentRound < totalRounds && playerWonLastRound)
         {
             currentRound++;
             Debug.Log($"Moving to Round {currentRound}...");
+            yield return winUI.Say("Moving to next round...");
         }
         else
         {
@@ -171,6 +176,7 @@ public class GameState : MonoBehaviour
             Debug.Log("😞 DEALER WINS THE GAME!");
         Debug.Log("=================================");
 
+        sceneFader.FadeOut();
         sceneFader.ReturnToMenu();
     }
     

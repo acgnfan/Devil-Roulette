@@ -80,7 +80,7 @@ public class ReloadVisualController : MonoBehaviour
         // ③ 等待玩家确认
         waitingForConfirm = true;
         // yield return new WaitUntil(PlayerConfirmed);
-        yield return dealerDialogue.Say($"{liveCount} live shell, {blankCount} blanks.");
+        yield return dealerDialogue.Say($"{liveCount} live shells, {blankCount} blanks.");
         yield return new WaitForSeconds(1.5f);
 
         // ④ 确认后：子弹一起消失
