@@ -27,6 +27,7 @@ public class GameFlowController : MonoBehaviour
     public Text bulletCountText;
     public GameObject playerTurnPanel;
     public GameObject dealerTurnPanel;
+    public SceneFaderGame sceneFader;
 
     [Header("GAME SETTINGS")]
     public bool autoStart = true;
@@ -190,12 +191,12 @@ public class GameFlowController : MonoBehaviour
         else if ((gameState.playerTurn && shootSelf && isLive) || (!gameState.playerTurn && !shootSelf && isLive))
         {
             // 玩家受到攻击
-            StartCoroutine(SceneFader.Instance.TurnBlack());
+            StartCoroutine(sceneFader.TurnBlack());
             BGMManager.Instance.OnPlayerHit();
             yield return new WaitForSeconds(0.5f);
             if (gameState.playerHP > 0)
             {
-                StartCoroutine(SceneFader.Instance.FadeIn(2.0f));
+                StartCoroutine(sceneFader.FadeIn(2.0f));
             }
         }
 
@@ -203,6 +204,7 @@ public class GameFlowController : MonoBehaviour
 
         if (shouldPutDownGun && dealerGun != null)
         {
+            yield return new WaitForSeconds(1.0f);
             yield return dealerGun.PlayPutDownGun();
         }
 

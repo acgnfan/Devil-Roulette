@@ -25,6 +25,7 @@ public class GameState : MonoBehaviour
     public float originalAlpha = 0.7f;
 
     public WristHealthDisplay wristUI;
+    public SceneFaderGame sceneFader;
     
     // HP per round configuration
     private Dictionary<int, int> roundHP = new Dictionary<int, int>()
@@ -170,7 +171,7 @@ public class GameState : MonoBehaviour
             Debug.Log("😞 DEALER WINS THE GAME!");
         Debug.Log("=================================");
 
-        SceneFader.Instance.LoadLevel("Create-with-VR-Starter-Scene");
+        sceneFader.ReturnToMenu();
     }
     
     // Check if we should start a new round
